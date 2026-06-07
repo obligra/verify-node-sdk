@@ -1,0 +1,24 @@
+{
+  "name": "@obligra/verify-sdk",
+  "version": "0.1.0",
+  "description": "Node.js SDK for capturing retained decision records with Obligra Verify.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "example:basic": "node examples/basic-capture/index.js"
+  },
+  "keywords": [
+    "obligra",
+    "verify",
+    "ai",
+    "sdk",
+    "decision-records",
+    "governance"
+  ],
+  "author": "Obligra",
+  "license": "Apache-2.0"
+}
