@@ -7,9 +7,19 @@
   "exports": {
     ".": "./src/index.js"
   },
+  "files": [
+    "src/index.js",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "test": "node --test",
-    "example:basic": "node examples/basic-capture/index.js"
+    "audit:check": "npm audit --omit=dev",
+    "example:basic": "VERIFY_API_KEY=test VERIFY_ENVIRONMENT=sandbox node examples/basic-capture/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "keywords": [
     "obligra",
@@ -20,5 +30,13 @@
     "governance"
   ],
   "author": "Obligra",
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/obligra/verify-node-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/obligra/verify-node-sdk/issues"
+  },
+  "homepage": "https://github.com/obligra/verify-node-sdk#readme"
 }

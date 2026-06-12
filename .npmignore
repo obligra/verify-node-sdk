@@ -1,0 +1,17 @@
+test/
+examples/
+docs/
+.github/
+.gitignore
+.DS_Store
+.env
+.env.*
+node_modules/
+coverage/
+dist/
+build/
+*.swp
+*.swo
+npm-debug.log*
+CONTRIBUTING.md
+SECURITY.md

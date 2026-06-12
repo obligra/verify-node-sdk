@@ -16,6 +16,11 @@ Early Integration Preview
 
 This SDK is under active development and is not yet recommended for production use.
 
+## Requirements
+
+- Node.js 18 or later
+- No additional runtime dependencies (the SDK uses only Node.js built-in APIs)
+
 ## Installation
 
 ```bash
@@ -93,6 +98,7 @@ Examples:
 - Structured error responses (`VerifyError` with `code`, `statusCode`, `retryable`)
 - Operational context and model metadata capture
 - Convenience field mapping (`retrievalKey`, `decisionType`, `prompt`, `response`)
+- Zero runtime dependencies — uses only Node.js built-in `fetch`, `URL`, `AbortController`
 
 ## Documentation
 
