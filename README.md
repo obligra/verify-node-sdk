@@ -24,10 +24,14 @@ This SDK is under active development and is not yet recommended for production u
 ## Installation
 
 ```bash
-npm install @obligra/verify-sdk
+npm install github:obligra/verify-node-sdk
 ```
 
 ## Quick Start
+
+### Option A: Use `.mjs` (works immediately, no config needed)
+
+Create `server.mjs`:
 
 ```javascript
 import { VerifyClient } from "@obligra/verify-sdk";
@@ -54,6 +58,37 @@ console.log(result.decisionRecordId); // "dr_..."
 console.log(result.status);           // "recorded"
 console.log(result.verificationState); // "not_verified"
 ```
+
+Run:
+
+```bash
+VERIFY_API_KEY=obv_sandbox_YOUR.KEY node server.mjs
+```
+
+### Option B: ESM project (set `type: module`)
+
+If you prefer `.js` files, add `"type": "module"` to your `package.json`:
+
+```bash
+npm pkg set type=module
+```
+
+Then use the same `import` syntax in any `.js` file:
+
+```javascript
+import { VerifyClient } from "@obligra/verify-sdk";
+```
+
+### CommonJS (`require`)
+
+The SDK is ESM-only. If your project uses CommonJS, use one of:
+
+```javascript
+// Dynamic import (works in CommonJS .js files with Node.js 18+)
+const { VerifyClient } = await import("@obligra/verify-sdk");
+```
+
+Or rename your file to `.mjs` and use the standard `import` syntax.
 
 ## Core Concepts
 

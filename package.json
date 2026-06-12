@@ -5,10 +5,14 @@
   "type": "module",
   "main": "src/index.js",
   "exports": {
-    ".": "./src/index.js"
+    ".": {
+      "import": "./src/index.js",
+      "require": "./src/index.cjs"
+    }
   },
   "files": [
     "src/index.js",
+    "src/index.cjs",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"
