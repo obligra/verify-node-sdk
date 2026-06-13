@@ -8,12 +8,15 @@
  *   npm install github:obligra/verify-node-sdk
  *
  * Run:
- *   VERIFY_API_KEY=obv_sandbox_YOUR.KEY node server.mjs
+ *   VERIFY_BASE_URL=https://verify-console.preview.emergentagent.com/api/v1 \
+ *   VERIFY_API_KEY=obv_sandbox_YOUR.KEY \
+ *   node server.mjs
  */
 
 import { VerifyClient, VerifyError } from "@obligra/verify-sdk";
 
 const verify = new VerifyClient({
+  baseUrl: process.env.VERIFY_BASE_URL,
   apiKey: process.env.VERIFY_API_KEY,
   environment: "sandbox",
 });

@@ -8,21 +8,29 @@ test("creates a Verify client with required options", () => {
   const verify = new VerifyClient({
     apiKey: "obv_sandbox_test1234.secretvalue1234567890123456",
     environment: "sandbox",
+    baseUrl: "https://api.obligra.ai/api/v1",
   });
   assert.equal(verify.environment, "sandbox");
-  assert.equal(verify.baseUrl, "https://y1h3onv0f1.execute-api.us-east-1.amazonaws.com/dev");
+  assert.equal(verify.baseUrl, "https://api.obligra.ai/api/v1");
+});
+
+test("throws when baseUrl is missing", () => {
+  assert.throws(
+    () => new VerifyClient({ apiKey: "obv_sandbox_test.secret", environment: "sandbox" }),
+    (err) => err instanceof VerifyError && err.code === "MISSING_BASE_URL" && err.message.includes("VERIFY_BASE_URL")
+  );
 });
 
 test("throws when apiKey is missing", () => {
   assert.throws(
-    () => new VerifyClient({ environment: "sandbox" }),
+    () => new VerifyClient({ environment: "sandbox", baseUrl: "https://mock.test" }),
     (err) => err instanceof VerifyError && err.code === "MISSING_API_KEY"
   );
 });
 
 test("throws when environment is missing", () => {
   assert.throws(
-    () => new VerifyClient({ apiKey: "obv_sandbox_test.secret" }),
+    () => new VerifyClient({ apiKey: "obv_sandbox_test.secret", baseUrl: "https://mock.test" }),
     (err) => err instanceof VerifyError && err.code === "MISSING_ENVIRONMENT"
   );
 });
@@ -51,6 +59,7 @@ test("captureDecisionRecord throws when workflowId is missing", async () => {
   const verify = new VerifyClient({
     apiKey: "obv_sandbox_test.secret",
     environment: "sandbox",
+    baseUrl: "https://mock.test",
   });
   await assert.rejects(
     () => verify.captureDecisionRecord({ retrievalKey: "test" }),

@@ -1,4 +1,3 @@
-const DEFAULT_BASE_URL = "https://y1h3onv0f1.execute-api.us-east-1.amazonaws.com/dev";
 const DEFAULT_TIMEOUT_MS = 10000;
 const DEFAULT_MAX_RETRIES = 2;
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
@@ -20,13 +19,21 @@ export class VerifyClient {
     this.environment = options.environment || process.env.VERIFY_ENVIRONMENT;
     this.timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
     this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
-    this.baseUrl = (options.baseUrl || process.env.VERIFY_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, "");
+    this.baseUrl = (options.baseUrl || process.env.VERIFY_BASE_URL || "").replace(/\/$/, "");
     this.enableLogging = options.enableLogging || false;
 
     this.validateConfig();
   }
 
   validateConfig() {
+    if (!this.baseUrl) {
+      throw new VerifyError(
+        "Missing Verify API baseUrl. Set VERIFY_BASE_URL or pass baseUrl to VerifyClient. " +
+        "For preview, use https://verify-console.preview.emergentagent.com/api/v1. " +
+        "For production, use https://api.obligra.ai/api/v1.",
+        { code: "MISSING_BASE_URL" }
+      );
+    }
     if (!this.apiKey) {
       throw new VerifyError("VERIFY_API_KEY is required. Pass apiKey in options or set VERIFY_API_KEY environment variable.", { code: "MISSING_API_KEY" });
     }

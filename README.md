@@ -37,6 +37,7 @@ Create `server.mjs`:
 import { VerifyClient } from "@obligra/verify-sdk";
 
 const verify = new VerifyClient({
+  baseUrl: process.env.VERIFY_BASE_URL,
   apiKey: process.env.VERIFY_API_KEY,
   environment: "sandbox"
 });
@@ -62,7 +63,9 @@ console.log(result.verificationState); // "not_verified"
 Run:
 
 ```bash
-VERIFY_API_KEY=obv_sandbox_YOUR.KEY node server.mjs
+VERIFY_BASE_URL=https://verify-console.preview.emergentagent.com/api/v1 \
+VERIFY_API_KEY=obv_sandbox_YOUR.KEY \
+node server.mjs
 ```
 
 ### Option B: ESM project (set `type: module`)
