@@ -20,7 +20,7 @@ new VerifyClient(options)
 |---|---|---|---|---|
 | `apiKey` | string | Yes | `process.env.VERIFY_API_KEY` | Verify API key |
 | `environment` | string | Yes | `process.env.VERIFY_ENVIRONMENT` | Target environment |
-| `baseUrl` | string | No | `https://y1h3onv0f1.execute-api.us-east-1.amazonaws.com/dev` | API endpoint |
+| `baseUrl` | string | **Yes** | — (required) | API endpoint. Set `VERIFY_BASE_URL` env var or pass explicitly. Preview: `https://verify-console.preview.emergentagent.com/api/v1`. Production: `https://api.obligra.ai/api/v1` |
 | `timeoutMs` | number | No | `10000` | Request timeout in milliseconds |
 | `maxRetries` | number | No | `2` | Max retry attempts for retryable failures |
 | `enableLogging` | boolean | No | `false` | Enable SDK diagnostic logging |
