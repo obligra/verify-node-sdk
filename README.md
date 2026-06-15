@@ -12,9 +12,11 @@ This SDK is intended for developers building AI-assisted operational workflows t
 
 ## Status
 
-Early Integration Preview
+**Early Integration Preview**
 
-This SDK is under active development and is not yet recommended for production use.
+- Validated against the deployed Obligra Verify environment
+- Suitable for evaluation, testing, and integration development
+- Not recommended for production use until the public production API endpoint and npm package are released
 
 ## Requirements
 
@@ -23,9 +25,27 @@ This SDK is under active development and is not yet recommended for production u
 
 ## Installation
 
+Install directly from GitHub:
+
 ```bash
 npm install github:obligra/verify-node-sdk
 ```
+
+> **Note:** npm package publication (`npm install @obligra/verify-sdk`) is planned for the production release. During the preview period, install from GitHub.
+
+## Getting Credentials
+
+1. Create or sign into your Verify Builder account at the Obligra Verify Console
+2. Navigate to **Settings → API Keys**
+3. Create a new API key — copy the secret shown once (it cannot be retrieved again)
+4. Set environment variables:
+
+```bash
+export VERIFY_API_KEY=obv_sandbox_YOUR_PREFIX.YOUR_SECRET
+export VERIFY_BASE_URL=https://verify-console.emergent.host/api/v1
+```
+
+The `VERIFY_BASE_URL` points to the deployed Verify environment. This URL will change to `https://api.obligra.ai/api/v1` at production launch.
 
 ## Quick Start
 
@@ -44,6 +64,8 @@ const verify = new VerifyClient({
 
 const result = await verify.captureDecisionRecord({
   workflowId: "claim-review-001",
+  prompt: "Summarize this claim for review.",
+  response: "Based on the documentation provided, this claim meets approval criteria.",
   operationalContext: {
     claimId: "claim-12345",
     reviewType: "ai-assisted",
@@ -63,7 +85,7 @@ console.log(result.verificationState); // "not_verified"
 Run:
 
 ```bash
-VERIFY_BASE_URL=https://verify-console.preview.emergentagent.com/api/v1 \
+VERIFY_BASE_URL=https://verify-console.emergent.host/api/v1 \
 VERIFY_API_KEY=obv_sandbox_YOUR.KEY \
 node server.mjs
 ```
@@ -151,7 +173,22 @@ Examples:
 - Structured error responses (`VerifyError` with `code`, `statusCode`, `retryable`)
 - Operational context and model metadata capture
 - Convenience field mapping (`retrievalKey`, `decisionType`, `prompt`, `response`)
+- Field validation — rejects `output`, `result`, `completion` with clear guidance
 - Zero runtime dependencies — uses only Node.js built-in `fetch`, `URL`, `AbortController`
+
+## Validation Status
+
+| Check | Status |
+|---|---|
+| GitHub install | ✅ Validated |
+| Clean-room install | ✅ Validated |
+| API key authentication | ✅ Validated |
+| Decision record capture | ✅ Validated |
+| Record retrieval via console | ✅ Validated |
+| Record verification via console | ✅ Validated |
+| Review history audit trail | ✅ Validated |
+| Runtime dependencies | Zero |
+| npm audit | Clean (0 vulnerabilities) |
 
 ## Documentation
 
@@ -165,21 +202,11 @@ Additional documentation is available in the `/docs` folder.
 - Errors and Retries
 - FAQ
 
-The Architecture Overview document provides:
-
-- Standard SDK capture workflow
-- Customer-owned AWS proxy deployment pattern
-- Decision record lifecycle
-- Review and retrieval workflow concepts
-- SDK design principles
-
 ## Examples
 
 Examples are available in the `examples/` directory included in this repository.
 
 The current example demonstrates basic decision record capture using the Obligra Verify Node.js SDK.
-
-Additional reference implementations, deployment patterns, and workflow examples will be published as they are finalized.
 
 ## Support
 

@@ -8,7 +8,7 @@
  *   npm install github:obligra/verify-node-sdk
  *
  * Run:
- *   VERIFY_BASE_URL=https://verify-console.preview.emergentagent.com/api/v1 \
+ *   VERIFY_BASE_URL=https://verify-console.emergent.host/api/v1 \
  *   VERIFY_API_KEY=obv_sandbox_YOUR.KEY \
  *   node server.mjs
  */
