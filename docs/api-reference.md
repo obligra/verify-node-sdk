@@ -53,11 +53,25 @@ const result = await verify.captureDecisionRecord(record);
 | `model` | object | Yes* | `{ provider: string, modelId: string }` |
 | `retrievalKey` | string | No | Maps to `operationalContext.retrievalKey` |
 | `decisionType` | string | No | Maps to `operationalContext.decisionType` |
-| `prompt` | string | No | Maps to `operationalContext.prompt` (truncated to 512 chars) |
-| `response` | string | No | Maps to `operationalContext.response` (truncated to 512 chars) |
+| `prompt` | string | No | Model input. Maps to `operationalContext.prompt` (truncated to 512 chars) |
+| `response` | string | No | Model output. Maps to `operationalContext.response` (truncated to 512 chars) |
 | `metadata` | object | No | Maps `metadata.model` → `model.modelId`, `metadata.modelProvider` → `model.provider` |
 
 *If not provided explicitly, built from convenience fields.
+
+#### Unsupported Fields
+
+The following field names throw an `UNSUPPORTED_FIELD` error if used:
+
+| Field | Error Message |
+|---|---|
+| `output` | `Unknown field "output". Use "response" for model output.` |
+| `result` | `Unknown field "result". Use "response" for model output.` |
+| `completion` | `Unknown field "completion". Use "response" for model output.` |
+| `answer` | `Unknown field "answer". Use "response" for model output.` |
+| `generation` | `Unknown field "generation". Use "response" for model output.` |
+
+This validation fires before any network request, preventing silent data loss.
 
 ### Response
 

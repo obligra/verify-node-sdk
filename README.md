@@ -100,10 +100,25 @@ Or rename your file to `.mjs` and use the standard `import` syntax.
 A decision record contains:
 
 - Workflow context
-- AI input
-- AI output
+- AI input (`prompt` field)
+- AI output (`response` field)
 - Metadata
 - Capture timestamp
+
+### Field Naming
+
+| Field | Purpose | Example |
+|---|---|---|
+| `prompt` | The input sent to the model | `"Summarize this claim."` |
+| `response` | The output returned by the model | `"Based on the evidence, this claim..."` |
+
+The SDK validates field names and rejects common alternatives:
+
+- `output` → use `response`
+- `result` → use `response`
+- `completion` → use `response`
+
+Using an unsupported field name throws a clear error before any network request is made.
 
 ### Workflow ID
 

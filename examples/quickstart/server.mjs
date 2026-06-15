@@ -24,13 +24,16 @@ const verify = new VerifyClient({
 try {
   const result = await verify.captureDecisionRecord({
     workflowId: "quickstart-test",
+    prompt: "Summarize this claim for review.",
+    response: "Based on the documentation provided, this claim meets approval criteria.",
     operationalContext: {
-      testRun: "true",
-      timestamp: new Date().toISOString(),
+      claimId: "claim-12345",
+      reviewType: "ai-assisted",
+      outcome: "approved",
     },
     model: {
-      provider: "test",
-      modelId: "quickstart-validation",
+      provider: "anthropic",
+      modelId: "claude-sonnet-4-20250514",
     },
   });
 

@@ -324,3 +324,89 @@ test("explicit operationalContext and model take precedence over convenience fie
   assert.equal(capturedBody.model.provider, "anthropic");
   assert.equal(capturedBody.model.modelId, "claude-sonnet-4-20250514");
 });
+
+// ─── Field Validation Tests ──────────────────────────────────────────────────
+
+test("throws UNSUPPORTED_FIELD for 'output' — use 'response' instead", () => {
+  const verify = new VerifyClient({
+    apiKey: "obv_sandbox_test.secret1234567890123456789012",
+    environment: "sandbox",
+    baseUrl: "https://mock.test",
+  });
+  assert.rejects(
+    () => verify.captureDecisionRecord({ workflowId: "test", output: "some output" }),
+    (err) => err instanceof VerifyError && err.code === "UNSUPPORTED_FIELD" && err.message.includes('"output"') && err.message.includes('"response"')
+  );
+});
+
+test("throws UNSUPPORTED_FIELD for 'result' — use 'response' instead", () => {
+  const verify = new VerifyClient({
+    apiKey: "obv_sandbox_test.secret1234567890123456789012",
+    environment: "sandbox",
+    baseUrl: "https://mock.test",
+  });
+  assert.rejects(
+    () => verify.captureDecisionRecord({ workflowId: "test", result: "some result" }),
+    (err) => err instanceof VerifyError && err.code === "UNSUPPORTED_FIELD" && err.message.includes('"result"') && err.message.includes('"response"')
+  );
+});
+
+test("throws UNSUPPORTED_FIELD for 'completion' — use 'response' instead", () => {
+  const verify = new VerifyClient({
+    apiKey: "obv_sandbox_test.secret1234567890123456789012",
+    environment: "sandbox",
+    baseUrl: "https://mock.test",
+  });
+  assert.rejects(
+    () => verify.captureDecisionRecord({ workflowId: "test", completion: "some completion" }),
+    (err) => err instanceof VerifyError && err.code === "UNSUPPORTED_FIELD" && err.message.includes('"completion"') && err.message.includes('"response"')
+  );
+});
+
+test("'response' field maps correctly to operationalContext.response", async (t) => {
+  const verify = new VerifyClient({
+    apiKey: "obv_sandbox_test.secret1234567890123456789012",
+    environment: "sandbox",
+    baseUrl: "https://mock.test",
+  });
+
+  let capturedBody;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    capturedBody = JSON.parse(opts.body);
+    return { ok: true, status: 201, json: async () => ({ decisionRecordId: "dr_test", createdAt: "2026-01-01T00:00:00Z" }) };
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  await verify.captureDecisionRecord({
+    workflowId: "test",
+    response: "The model generated this response.",
+    model: { provider: "test", modelId: "test" },
+  });
+
+  assert.equal(capturedBody.operationalContext.response, "The model generated this response.");
+});
+
+test("'prompt' field maps correctly to operationalContext.prompt", async (t) => {
+  const verify = new VerifyClient({
+    apiKey: "obv_sandbox_test.secret1234567890123456789012",
+    environment: "sandbox",
+    baseUrl: "https://mock.test",
+  });
+
+  let capturedBody;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    capturedBody = JSON.parse(opts.body);
+    return { ok: true, status: 201, json: async () => ({ decisionRecordId: "dr_test", createdAt: "2026-01-01T00:00:00Z" }) };
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  await verify.captureDecisionRecord({
+    workflowId: "test",
+    prompt: "Summarize this document.",
+    model: { provider: "test", modelId: "test" },
+  });
+
+  assert.equal(capturedBody.operationalContext.prompt, "Summarize this document.");
+});

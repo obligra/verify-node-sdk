@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning once public package releases begin.
 
+## [0.1.2] - 2026-06-11
+
+### Added
+
+- Field validation: throws `UNSUPPORTED_FIELD` error for `output`, `result`, `completion`, `answer`, `generation`
+- Clear error message directs developers to use `response` for model output
+- Tests for `prompt` and `response` field mapping
+- Tests for unsupported field rejection
+
+### Changed
+
+- `docs/api-reference.md`: baseUrl marked as required, removed raw API Gateway URL
+- `examples/quickstart/server.mjs`: demonstrates canonical `prompt` + `response` fields
+- Canonical field naming documented: `prompt` = model input, `response` = model output
+
 ## [0.1.1] - 2026-06-11
 
 ### Changed

@@ -58,6 +58,20 @@ export class VerifyClient {
       throw new VerifyError("workflowId is required.", { code: "MISSING_WORKFLOW_ID" });
     }
 
+    // Validate for unknown/unsupported fields that indicate a misunderstanding of the API
+    const UNSUPPORTED_FIELDS = {
+      output: 'Unknown field "output". Use "response" for model output.',
+      result: 'Unknown field "result". Use "response" for model output.',
+      completion: 'Unknown field "completion". Use "response" for model output.',
+      answer: 'Unknown field "answer". Use "response" for model output.',
+      generation: 'Unknown field "generation". Use "response" for model output.',
+    };
+    for (const [field, message] of Object.entries(UNSUPPORTED_FIELDS)) {
+      if (field in record) {
+        throw new VerifyError(message, { code: "UNSUPPORTED_FIELD" });
+      }
+    }
+
     // Build payload aligned to Verify API contract
     const payload = {
       workflowId: record.workflowId,
