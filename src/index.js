@@ -29,8 +29,7 @@ export class VerifyClient {
     if (!this.baseUrl) {
       throw new VerifyError(
         "Missing Verify API baseUrl. Set VERIFY_BASE_URL or pass baseUrl to VerifyClient. " +
-        "For preview, use https://verify-console.preview.emergentagent.com/api/v1. " +
-        "For production, use https://api.obligra.ai/api/v1.",
+        "Use https://api.obligra.ai/api/v1 for production.",
         { code: "MISSING_BASE_URL" }
       );
     }

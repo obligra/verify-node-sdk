@@ -42,10 +42,10 @@ npm install github:obligra/verify-node-sdk
 
 ```bash
 export VERIFY_API_KEY=obv_sandbox_YOUR_PREFIX.YOUR_SECRET
-export VERIFY_BASE_URL=https://verify-console.emergent.host/api/v1
+export VERIFY_BASE_URL=https://api.obligra.ai/api/v1
 ```
 
-The `VERIFY_BASE_URL` points to the deployed Verify environment. This URL will change to `https://api.obligra.ai/api/v1` at production launch.
+> **Preview period:** Until the production domain is live, use the preview URL provided in your onboarding email.
 
 ## Quick Start
 
@@ -85,7 +85,7 @@ console.log(result.verificationState); // "not_verified"
 Run:
 
 ```bash
-VERIFY_BASE_URL=https://verify-console.emergent.host/api/v1 \
+VERIFY_BASE_URL=https://api.obligra.ai/api/v1 \
 VERIFY_API_KEY=obv_sandbox_YOUR.KEY \
 node server.mjs
 ```
