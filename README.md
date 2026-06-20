@@ -10,13 +10,22 @@ The Verify SDK allows applications to capture retained decision records that can
 
 This SDK is intended for developers building AI-assisted operational workflows that require durable records of AI-generated outputs and associated workflow context.
 
+## Platform URLs
+
+| | URL |
+|---|---|
+| Verify Console | https://console.obligra.ai |
+| Verify API | https://api.obligra.ai/api/v1 |
+| Documentation | https://obligra.ai/resources |
+
 ## Status
 
-**Early Integration Preview**
+**Public Preview**
 
-- Validated against the deployed Obligra Verify environment
-- Suitable for evaluation, testing, and integration development
-- Not recommended for production use until the public production API endpoint and npm package are released
+- Validated against the Obligra Verify production platform
+- Suitable for development, testing, and preview deployments
+- Production use supported for approved Verify environments
+- Additional SDK enhancements and language support in progress
 
 ## Requirements
 
@@ -37,7 +46,7 @@ npm install github:obligra/verify-node-sdk
 
 1. Create or sign into your Verify Builder account at the Obligra Verify Console
 2. Navigate to **Settings → API Keys**
-3. Create a new API key — copy the secret shown once (it cannot be retrieved again)
+3. Create a Verify API key from the Verify Console — copy the secret shown once (it cannot be retrieved again)
 4. Set environment variables:
 
 ```bash
@@ -45,7 +54,25 @@ export VERIFY_API_KEY=obv_sandbox_YOUR_PREFIX.YOUR_SECRET
 export VERIFY_BASE_URL=https://api.obligra.ai/api/v1
 ```
 
-> **Preview period:** Until the production domain is live, use the preview URL provided in your onboarding email.
+## Security
+
+Store Verify API keys securely.
+
+Recommended options:
+
+- AWS Secrets Manager
+- Azure Key Vault
+- HashiCorp Vault
+- Environment variables managed by your deployment platform
+
+Do not:
+
+- Commit API keys to source control
+- Embed API keys in frontend applications
+- Hard-code API keys in application code
+- Store API keys in browser-accessible storage
+
+The Verify API key should only be accessible to trusted backend services.
 
 ## Quick Start
 
@@ -88,6 +115,22 @@ Run:
 VERIFY_BASE_URL=https://api.obligra.ai/api/v1 \
 VERIFY_API_KEY=obv_sandbox_YOUR.KEY \
 node server.mjs
+```
+
+## What Happens Next?
+
+When a decision record is successfully captured:
+
+1. The record is retained by the Verify platform
+2. A unique decision record identifier is returned
+3. A console URL is generated
+4. Authorized users can inspect the record in the Verify Console
+5. Verification can be executed later to validate record integrity
+
+Example console URL:
+
+```
+https://console.obligra.ai/records/dr_xxxxxxxx
 ```
 
 ### Option B: ESM project (set `type: module`)
