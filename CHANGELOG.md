@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — capture contract and write safety
+
+- Keep AI input/output losslessly in `aiAssistedContext`, preserve explicit values, and copy caller-owned maps.
+- Validate searchable reference and whole-payload limits before HTTP.
+- Attempt captures once; mark uncertain outcomes and missing receipts explicitly; do not fabricate timestamps or success status.
+- Correct API-key capture origin documentation and distinguish offline tests from pending live acceptance.
+- Migration changes payload location and retry semantics; exact revision review and authenticated Test acceptance are required before release.
+
+
 All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning once public package releases begin.

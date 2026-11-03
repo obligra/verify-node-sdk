@@ -92,7 +92,7 @@ Typical SDK responsibilities include:
 * API authentication
 * decision record capture
 * workflow metadata handling
-* retry handling
+* uncertain write handling without automatic capture retries
 * structured error handling
 
 ---

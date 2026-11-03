@@ -1,14 +1,15 @@
 const DEFAULT_TIMEOUT_MS = 10000;
-const DEFAULT_MAX_RETRIES = 2;
+const DEFAULT_MAX_RETRIES = 0;
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 
 export class VerifyError extends Error {
-  constructor(message, { statusCode, code, retryable = false, response } = {}) {
+  constructor(message, { statusCode, code, retryable = false, outcomeUnknown = false, response } = {}) {
     super(message);
     this.name = "VerifyError";
     this.statusCode = statusCode;
     this.code = code;
     this.retryable = retryable;
+    this.outcomeUnknown = outcomeUnknown;
     this.response = response;
   }
 }
@@ -19,7 +20,7 @@ export class VerifyClient {
     this.environment = options.environment || process.env.VERIFY_ENVIRONMENT;
     this.timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
     this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
-    this.baseUrl = (options.baseUrl || process.env.VERIFY_BASE_URL || "").replace(/\/$/, "");
+    this.baseUrl = (options.baseUrl || process.env.VERIFY_BASE_URL || "").replace(/\/+$/, "");
     this.enableLogging = options.enableLogging || false;
 
     this.validateConfig();
@@ -29,7 +30,7 @@ export class VerifyClient {
     if (!this.baseUrl) {
       throw new VerifyError(
         "Missing Verify API baseUrl. Set VERIFY_BASE_URL or pass baseUrl to VerifyClient. " +
-        "Use https://api.obligra.ai/api/v1 for production.",
+        "Use the API-key capture origin supplied for your workspace; the SDK appends /decision-records.",
         { code: "MISSING_BASE_URL" }
       );
     }
@@ -53,6 +54,9 @@ export class VerifyClient {
   }
 
   async captureDecisionRecord(record) {
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
+      throw new VerifyError("A decision record object is required.", { code: "INVALID_RECORD" });
+    }
     if (!record.workflowId) {
       throw new VerifyError("workflowId is required.", { code: "MISSING_WORKFLOW_ID" });
     }
@@ -71,64 +75,45 @@ export class VerifyClient {
       }
     }
 
-    // Build payload aligned to Verify API contract
-    const payload = {
-      workflowId: record.workflowId,
-      operationalContext: record.operationalContext || {},
-      model: record.model || {},
-    };
-
-    // Map SDK convenience fields to operationalContext
-    if (record.retrievalKey && !payload.operationalContext.retrievalKey) {
-      payload.operationalContext.retrievalKey = record.retrievalKey;
+    // Keep searchable references separate from submitted AI input/output.
+    // Copy caller-owned maps; never truncate evidence or mutate input objects.
+    const operationalContext = copyStringMap(record.operationalContext, "operationalContext");
+    const aiAssistedContext = copyStringMap(record.aiAssistedContext, "aiAssistedContext");
+    for (const field of ["retrievalKey", "decisionType"]) {
+      if (record[field] !== undefined && !Object.hasOwn(operationalContext, field)) {
+        operationalContext[field] = requireString(record[field], field);
+      }
     }
-    if (record.decisionType && !payload.operationalContext.decisionType) {
-      payload.operationalContext.decisionType = record.decisionType;
+    for (const [field, target] of [["prompt", "prompt"], ["response", "output"]]) {
+      if (record[field] !== undefined && !Object.hasOwn(aiAssistedContext, target)) {
+        aiAssistedContext[target] = requireString(record[field], field);
+      }
     }
-    if (record.prompt && !payload.operationalContext.prompt) {
-      payload.operationalContext.prompt = typeof record.prompt === "string" ? record.prompt.slice(0, 512) : String(record.prompt).slice(0, 512);
-    }
-    if (record.response && !payload.operationalContext.response) {
-      payload.operationalContext.response = typeof record.response === "string" ? record.response.slice(0, 512) : String(record.response).slice(0, 512);
-    }
-
-    // Map metadata to model if model not explicitly set
-    if (record.metadata && !record.model) {
-      payload.model = {
-        provider: record.metadata.modelProvider || record.metadata.provider || "unknown",
-        modelId: record.metadata.model || record.metadata.modelId || "unknown",
-      };
-    }
-
-    // Ensure model has required fields
-    if (!payload.model.provider) payload.model.provider = "unknown";
-    if (!payload.model.modelId) payload.model.modelId = "unknown";
+    const model = record.model === undefined ? {
+      provider: record.metadata?.modelProvider ?? record.metadata?.provider ?? "unknown",
+      modelId: record.metadata?.model ?? record.metadata?.modelId ?? "unknown",
+    } : copyStringMap(record.model, "model");
+    if (model.provider === undefined) model.provider = "unknown";
+    if (model.modelId === undefined) model.modelId = "unknown";
+    const payload = { workflowId: record.workflowId, operationalContext, aiAssistedContext, model };
+    validatePayload(payload);
 
     const url = `${this.baseUrl}/decision-records`;
-    const result = await this._fetchWithRetry(url, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-
-    return {
-      ...result,
-      decisionRecordId: result.decisionRecordId,
-      status: result.status || "recorded",
-      capturedAt: result.createdAt || new Date().toISOString(),
-    };
-  }
-
-  async _fetchWithRetry(url, options, attempt = 0) {
+    // Capture is a write without a server idempotency contract. Even an
+    // opted-in retry count must not repeat an uncertain capture automatically.
     try {
-      return await this._fetch(url, options);
+      const result = await this._fetch(url, { method: "POST", body: JSON.stringify(payload) });
+      if (!result || typeof result.decisionRecordId !== "string" || !result.decisionRecordId.trim()) {
+        throw new VerifyError("The server did not return a capture receipt", {
+          code: "CAPTURE_RESULT_UNCONFIRMED", outcomeUnknown: true,
+        });
+      }
+      return { ...result, capturedAt: result.createdAt };
     } catch (err) {
-      if (err.retryable && attempt < this.maxRetries) {
-        const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
-        if (this.enableLogging) {
-          console.warn(`[verify-sdk] Retry ${attempt + 1}/${this.maxRetries} after ${delay}ms: ${err.message}`);
-        }
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return this._fetchWithRetry(url, options, attempt + 1);
+      if (err instanceof VerifyError) {
+        err.retryable = false;
+        err.outcomeUnknown ||= err.code === "NETWORK_ERROR" || err.code === "TIMEOUT" || err.statusCode >= 500;
+        if (err.outcomeUnknown) err.message += ". The capture may have been saved; check Records before retrying.";
       }
       throw err;
     }
@@ -181,6 +166,39 @@ export class VerifyClient {
     const code = body?.code || STATUS_CODE_MAP[statusCode] || "UNKNOWN_ERROR";
 
     throw new VerifyError(message, { statusCode, code, retryable, response: body });
+  }
+}
+
+function requireString(value, field) {
+  if (typeof value !== "string") throw new VerifyError(`${field} must be a string.`, { code: "INVALID_FIELD" });
+  return value;
+}
+
+function copyStringMap(value, field) {
+  if (value === undefined) return {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new VerifyError(`${field} must be a JSON object with string values.`, { code: "INVALID_FIELD" });
+  }
+  for (const entry of Object.values(value)) requireString(entry, field);
+  return { ...value };
+}
+
+function validatePayload(payload) {
+  const invalid = message => { throw new VerifyError(message, { code: "INVALID_FIELD" }); };
+  if (typeof payload.workflowId !== "string" || !payload.workflowId.trim() || payload.workflowId.length > 128) {
+    invalid("workflowId must be a non-empty string of up to 128 characters.");
+  }
+  const refs = Object.entries(payload.operationalContext);
+  if (refs.length > 20) invalid("operationalContext supports up to 20 searchable references.");
+  for (const [key, value] of refs) {
+    if (key.length > 64 || value.length > 128) invalid("Reference names support up to 64 characters and values up to 128. Put AI input/output in aiAssistedContext.");
+  }
+  if (typeof payload.model.provider !== "string" || !payload.model.provider || payload.model.provider.length > 64 ||
+      typeof payload.model.modelId !== "string" || !payload.model.modelId || payload.model.modelId.length > 128) {
+    invalid("model.provider and model.modelId must be non-empty strings of up to 64 and 128 characters respectively.");
+  }
+  if (Buffer.byteLength(JSON.stringify(payload), "utf8") > 256 * 1024) {
+    throw new VerifyError("Decision record payload exceeds 256 KiB. No data was sent or truncated.", { code: "PAYLOAD_TOO_LARGE" });
   }
 }
 

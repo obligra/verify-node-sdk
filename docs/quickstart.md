@@ -11,7 +11,7 @@ This guide walks through capturing a retained decision record using the Obligra 
 ## Install the SDK
 
 ```bash
-npm install @obligra/verify-sdk
+npm install github:obligra/verify-node-sdk#REVIEWED_COMMIT
 ```
 
 ## Configure the SDK
@@ -21,6 +21,7 @@ import { VerifyClient } from "@obligra/verify-sdk";
 
 const verify = new VerifyClient({
   apiKey: process.env.VERIFY_API_KEY,
+  baseUrl: process.env.VERIFY_BASE_URL,
   environment: "sandbox"
 });
 ```
@@ -94,8 +95,8 @@ The SDK also accepts these fields and maps them into the API payload:
 |---|---|
 | `retrievalKey` | `operationalContext.retrievalKey` |
 | `decisionType` | `operationalContext.decisionType` |
-| `prompt` | `operationalContext.prompt` (truncated to 512 chars) |
-| `response` | `operationalContext.response` (truncated to 512 chars) |
+| `prompt` | `aiAssistedContext.prompt` without truncation |
+| `response` | `aiAssistedContext.output` without truncation |
 | `metadata.model` | `model.modelId` |
 | `metadata.modelProvider` | `model.provider` |
 
@@ -133,3 +134,13 @@ try {
 * [Capture Decision Records](./capture-decision-record.md) — full field reference
 * [API Reference](./api-reference.md) — all methods
 * [Errors and Retries](./errors-and-retries.md) — retry behavior
+
+## Current contract and acceptance limits
+
+This branch is an unreleased correction. Replace `REVIEWED_COMMIT` only with the exact reviewed revision after its release gate; do not assume the default branch contains it. Authenticated live SDK capture/retrieval has not yet been validated for this revision.
+
+Use the approved API-key capture origin (`https://api.obligra.ai` for the existing deployment). The SDK appends `/decision-records`; do not add the console API prefix `/api/v1`.
+
+Keep searchable identifiers in `operationalContext` (up to 20 string values of at most 128 characters). Convenience `prompt` and `response` map without truncation to `aiAssistedContext.prompt` and `aiAssistedContext.output`. Explicit AI-context values take precedence. The full UTF-8 JSON request must fit 256 KiB. No model is called by capture.
+
+Captures are never automatically retried. For `outcomeUnknown` errors, reconcile existing saved Records before another attempt. See [Errors and capture safety](errors-and-retries.md). Use only fictional or synthetic Test data during validation; keep keys server-side and out of logs/recordings.

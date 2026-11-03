@@ -5,10 +5,10 @@
  * regardless of package.json "type" setting.
  *
  * Setup:
- *   npm install github:obligra/verify-node-sdk
+ *   npm install github:obligra/verify-node-sdk#REVIEWED_COMMIT
  *
  * Run:
- *   VERIFY_BASE_URL=https://verify-console.emergent.host/api/v1 \
+ *   VERIFY_BASE_URL=https://api.obligra.ai \
  *   VERIFY_API_KEY=obv_sandbox_YOUR.KEY \
  *   node server.mjs
  */
@@ -23,17 +23,17 @@ const verify = new VerifyClient({
 
 try {
   const result = await verify.captureDecisionRecord({
-    workflowId: "quickstart-test",
+    workflowId: "fictional-quickstart-test",
     prompt: "Summarize this claim for review.",
     response: "Based on the documentation provided, this claim meets approval criteria.",
     operationalContext: {
-      claimId: "claim-12345",
+      claimId: "fictional-claim-001",
       reviewType: "ai-assisted",
       outcome: "approved",
     },
     model: {
-      provider: "anthropic",
-      modelId: "claude-sonnet-4-20250514",
+      provider: "synthetic",
+      modelId: "no-model-call",
     },
   });
 
@@ -44,6 +44,7 @@ try {
 } catch (err) {
   if (err instanceof VerifyError) {
     console.error(`✗ Verify error [${err.code}]: ${err.message}`);
+    if (err.outcomeUnknown) console.error("Capture outcome unknown. Check saved Records before another attempt.");
     if (err.statusCode === 401) {
       console.error("  → Check your VERIFY_API_KEY is valid and active");
     }

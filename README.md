@@ -15,17 +15,17 @@ This SDK is intended for developers building AI-assisted operational workflows t
 | | URL |
 |---|---|
 | Verify Console | https://console.obligra.ai |
-| Verify API | https://api.obligra.ai/api/v1 |
+| Verify API | https://api.obligra.ai |
 | Documentation | https://obligra.ai/resources |
 
 ## Status
 
 **Public Preview**
 
-- Validated against the Obligra Verify production platform
-- Suitable for development, testing, and preview deployments
-- Production use supported for approved Verify environments
-- Additional SDK enhancements and language support in progress
+- This branch contains a capture-contract and write-safety correction under review.
+- Offline mocked-HTTP tests pass; authenticated end-to-end acceptance of this revision is still pending.
+- Earlier validation reports describe earlier revisions and are not a current release acceptance result.
+- Use only fictional or synthetic input in a Test environment during validation.
 
 ## Requirements
 
@@ -34,10 +34,10 @@ This SDK is intended for developers building AI-assisted operational workflows t
 
 ## Installation
 
-Install directly from GitHub:
+After the candidate passes its release gate, install an exact reviewed GitHub commit (replace `REVIEWED_COMMIT`; the default branch is a different revision):
 
 ```bash
-npm install github:obligra/verify-node-sdk
+npm install github:obligra/verify-node-sdk#REVIEWED_COMMIT
 ```
 
 > **Note:** npm package publication (`npm install @obligra/verify-sdk`) is planned for the production release. During the preview period, install from GitHub.
@@ -45,13 +45,13 @@ npm install github:obligra/verify-node-sdk
 ## Getting Credentials
 
 1. Create or sign into your Verify Builder account at the Obligra Verify Console
-2. Navigate to **Settings → API Keys**
+2. Navigate to **API Keys**
 3. Create a Verify API key from the Verify Console — copy the secret shown once (it cannot be retrieved again)
 4. Set environment variables:
 
 ```bash
 export VERIFY_API_KEY=obv_sandbox_YOUR_PREFIX.YOUR_SECRET
-export VERIFY_BASE_URL=https://api.obligra.ai/api/v1
+export VERIFY_BASE_URL=https://api.obligra.ai
 ```
 
 ## Security
@@ -112,7 +112,7 @@ console.log(result.verificationState); // "not_verified"
 Run:
 
 ```bash
-VERIFY_BASE_URL=https://api.obligra.ai/api/v1 \
+VERIFY_BASE_URL=https://api.obligra.ai \
 VERIFY_API_KEY=obv_sandbox_YOUR.KEY \
 node server.mjs
 ```
@@ -211,7 +211,7 @@ Examples:
 
 - API key authentication (`X-Verify-Api-Key` header)
 - Decision record capture via HTTPS
-- Automatic retry with exponential backoff (429, 5xx)
+- One HTTP attempt per capture; uncertain writes are never retried automatically
 - Configurable timeout
 - Structured error responses (`VerifyError` with `code`, `statusCode`, `retryable`)
 - Operational context and model metadata capture
@@ -221,17 +221,18 @@ Examples:
 
 ## Validation Status
 
-| Check | Status |
-|---|---|
-| GitHub install | ✅ Validated |
-| Clean-room install | ✅ Validated |
-| API key authentication | ✅ Validated |
-| Decision record capture | ✅ Validated |
-| Record retrieval via console | ✅ Validated |
-| Record verification via console | ✅ Validated |
-| Review history audit trail | ✅ Validated |
-| Runtime dependencies | Zero |
-| npm audit | Clean (0 vulnerabilities) |
+This unreleased correction is covered by offline SDK tests and comparison with the current backend payload validator. It has not passed an authenticated capture/retrieval test in the deployed environment. No production or integration-readiness claim follows from mocked tests.
+
+Before releasing, review the migration below, pin the exact candidate commit, then validate one explicitly authorized synthetic server-side capture and its saved receipt. Keep the key out of browser code, logs and recordings. If the result is uncertain, reconcile existing records before another attempt.
+
+## Migration from 0.1.2
+
+- `prompt` and `response` now map losslessly to `aiAssistedContext.prompt` and `aiAssistedContext.output`. Explicit AI-context values take precedence, including empty strings. Existing records are not changed.
+- Move any legacy prompt/output values out of `operationalContext` before upgrading. Existing records are not rewritten.
+- Search references stay in `operationalContext`: up to 20 string values, each at most 128 characters; names at most 64 characters. The complete UTF-8 JSON payload must fit 256 KiB. Invalid data is rejected before HTTP rather than shortened.
+- Captures are attempted once, even if `maxRetries` is supplied. Network, timeout, 5xx and missing-receipt outcomes are marked `outcomeUnknown`; inspect saved Records before deciding whether another attempt is safe. There is no server idempotency guarantee in this contract.
+- The API-key capture base URL is the origin `https://api.obligra.ai`; the SDK appends `/decision-records`. The Cognito-protected console API prefix `/api/v1` is a different route. Confirm your approved deployment endpoint before using a key.
+- `capturedAt` aliases the server's `createdAt` only; no client timestamp or successful status is invented when missing.
 
 ## Documentation
 
