@@ -187,7 +187,7 @@ The Verify SDK exposes only the customer-facing capture interface. It does not e
 
 ## Current contract and acceptance limits
 
-This branch is an unreleased correction. Replace `REVIEWED_COMMIT` only with the exact reviewed revision after its release gate; do not assume the default branch contains it. Authenticated live SDK capture/retrieval has not yet been validated for this revision.
+This source includes an unreleased correction. For authorized Test evaluation, replace `REVIEWED_COMMIT` with the exact reviewed revision and confirm that it contains the correction. Authenticated live SDK capture/retrieval has not yet been validated for this revision; source review and merging alone do not complete release acceptance.
 
 Use the approved API-key capture origin (`https://api.obligra.ai` for the existing deployment). The SDK appends `/decision-records`; do not add the console API prefix `/api/v1`.
 

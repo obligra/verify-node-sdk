@@ -22,7 +22,7 @@ This SDK is intended for developers building AI-assisted operational workflows t
 
 **Public Preview**
 
-- This branch contains a capture-contract and write-safety correction under review.
+- This source includes a capture-contract and write-safety correction; live acceptance remains pending.
 - Offline mocked-HTTP tests pass; authenticated end-to-end acceptance of this revision is still pending.
 - Earlier validation reports describe earlier revisions and are not a current release acceptance result.
 - Use only fictional or synthetic input in a Test environment during validation.
@@ -34,7 +34,7 @@ This SDK is intended for developers building AI-assisted operational workflows t
 
 ## Installation
 
-After the candidate passes its release gate, install an exact reviewed GitHub commit (replace `REVIEWED_COMMIT`; the default branch is a different revision):
+For an authorized Test evaluation, install an exact reviewed GitHub commit (replace `REVIEWED_COMMIT`; confirm which revision you are evaluating):
 
 ```bash
 npm install github:obligra/verify-node-sdk#REVIEWED_COMMIT
@@ -157,7 +157,7 @@ The SDK is ESM-only. If your project uses CommonJS, use one of:
 ```javascript
 // server.cjs — dynamic import must be inside an async function.
 async function main() {
-  const { VerifyClient } = await import("@obligra/verify-sdk");
+  const { VerifyClient, VerifyError } = await import("@obligra/verify-sdk");
   const verify = new VerifyClient({
     apiKey: process.env.VERIFY_API_KEY,
     baseUrl: process.env.VERIFY_BASE_URL,
