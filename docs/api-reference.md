@@ -18,11 +18,11 @@ new VerifyClient(options)
 
 | Option | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `apiKey` | string | Yes | `process.env.VERIFY_API_KEY` | Verify API key |
-| `environment` | string | Yes | `process.env.VERIFY_ENVIRONMENT` | Target environment |
-| `baseUrl` | string | **Yes** | — (required) | API endpoint. Set `VERIFY_BASE_URL` or pass explicitly. Example: `https://api.obligra.ai/api/v1` |
-| `timeoutMs` | number | No | `10000` | Request timeout in milliseconds |
-| `maxRetries` | number | No | `2` | Max retry attempts for retryable failures |
+| `apiKey` | string | Yes, option or env | `process.env.VERIFY_API_KEY` | Verify capture key with `records:write` |
+| `environment` | string | Yes, option or env | `process.env.VERIFY_ENVIRONMENT` | Legacy label (`sandbox` for Test); the key determines actual scope |
+| `baseUrl` | string | **Yes** | — (required) | API endpoint. Set `VERIFY_BASE_URL` or pass explicitly. Example: `https://api.obligra.ai` |
+| `timeoutMs` | number | No | `10000` | Total request deadline including response body; integer 1–2147483647 ms |
+| `maxRetries` | number | No | `0` | Retained for compatibility; captures are never automatically retried |
 | `enableLogging` | boolean | No | `false` | Enable SDK diagnostic logging |
 
 ```javascript
@@ -30,7 +30,7 @@ const verify = new VerifyClient({
   apiKey: process.env.VERIFY_API_KEY,
   environment: "sandbox",
   timeoutMs: 15000,
-  maxRetries: 3
+  baseUrl: process.env.VERIFY_BASE_URL
 });
 ```
 
@@ -49,15 +49,16 @@ const result = await verify.captureDecisionRecord(record);
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `workflowId` | string | Yes | Identifies the workflow |
-| `operationalContext` | object | Yes* | Key-value string pairs describing the decision context |
-| `model` | object | Yes* | `{ provider: string, modelId: string }` |
+| `operationalContext` | object | No* | Searchable string references (up to 20, values up to 128 characters) |
+| `model` | object | No* | `{ provider: string, modelId: string }` |
 | `retrievalKey` | string | No | Maps to `operationalContext.retrievalKey` |
 | `decisionType` | string | No | Maps to `operationalContext.decisionType` |
-| `prompt` | string | No | Model input. Maps to `operationalContext.prompt` (truncated to 512 chars) |
-| `response` | string | No | Model output. Maps to `operationalContext.response` (truncated to 512 chars) |
+| `prompt` | string | No | Model input. Maps to `aiAssistedContext.prompt` without truncation |
+| `response` | string | No | Model output. Maps to `aiAssistedContext.output` without truncation |
+| `aiAssistedContext` | object | No | String values retained separately from searchable references; explicit values take precedence |
 | `metadata` | object | No | Maps `metadata.model` → `model.modelId`, `metadata.modelProvider` → `model.provider` |
 
-*If not provided explicitly, built from convenience fields.
+*If omitted, the SDK builds the context from convenience fields (or `{}`) and defaults missing model fields to `"unknown"`.
 
 #### Unsupported Fields
 
@@ -74,6 +75,8 @@ The following field names throw an `UNSUPPORTED_FIELD` error if used:
 This validation fires before any network request, preventing silent data loss.
 
 ### Response
+
+Capture requires HTTP 201 and an object containing a nonempty string `decisionRecordId`. The following is an illustrative receipt; optional metadata is not guaranteed or synthesized. `capturedAt` aliases `createdAt` only when supplied.
 
 ```json
 {
@@ -132,7 +135,8 @@ import { VerifyError } from "@obligra/verify-sdk";
 | `message` | string | Human-readable error message |
 | `statusCode` | number | HTTP status code (when available) |
 | `code` | string | Stable error code |
-| `retryable` | boolean | Whether the SDK will retry this error |
+| `retryable` | boolean | Always false for capture errors; no automatic capture retry |
+| `outcomeUnknown` | boolean | The write may have been saved; reconcile Records before another attempt |
 | `response` | object | Raw API error response body (when available) |
 
 ### Error Codes
@@ -140,6 +144,8 @@ import { VerifyError } from "@obligra/verify-sdk";
 | Code | HTTP | Retryable | Meaning |
 |---|---|---|---|
 | `MISSING_API_KEY` | — | No | API key not provided |
+| `INVALID_TIMEOUT` | — | No | timeoutMs is not a supported positive integer |
+| `CAPTURE_RESULT_UNCONFIRMED` | 2xx | No | Unexpected success status or missing usable receipt |
 | `MISSING_ENVIRONMENT` | — | No | Environment not provided |
 | `MISSING_WORKFLOW_ID` | — | No | workflowId not in request |
 | `BAD_REQUEST` | 400 | No | Payload validation failed |
@@ -147,22 +153,17 @@ import { VerifyError } from "@obligra/verify-sdk";
 | `FORBIDDEN` | 403 | No | Insufficient permissions |
 | `NOT_FOUND` | 404 | No | Endpoint not found |
 | `PAYLOAD_TOO_LARGE` | 413 | No | Payload exceeds 256KB |
-| `RATE_LIMITED` | 429 | Yes | Too many requests |
-| `INTERNAL_ERROR` | 500 | Yes | Server error |
-| `BAD_GATEWAY` | 502 | Yes | Upstream failure |
-| `SERVICE_UNAVAILABLE` | 503 | Yes | Service temporarily down |
-| `GATEWAY_TIMEOUT` | 504 | Yes | Upstream timeout |
-| `TIMEOUT` | — | Yes | Client-side timeout |
-| `NETWORK_ERROR` | — | Yes | Connection failure |
+| `RATE_LIMITED` | 429 | No | Too many requests |
+| `INTERNAL_ERROR` | 500 | No | Server error |
+| `BAD_GATEWAY` | 502 | No | Upstream failure |
+| `SERVICE_UNAVAILABLE` | 503 | No | Service temporarily down |
+| `GATEWAY_TIMEOUT` | 504 | No | Upstream timeout |
+| `TIMEOUT` | — | No | Client-side timeout |
+| `NETWORK_ERROR` | — | No | Connection failure |
 
-### Retry Behavior
+### Capture attempts
 
-The SDK retries automatically on retryable errors with exponential backoff:
-- Attempt 1: immediate
-- Attempt 2: 1000ms delay
-- Attempt 3: 2000ms delay (if `maxRetries >= 2`)
-
-Non-retryable errors (400, 401, 403) are thrown immediately.
+Captures make one HTTP attempt. `maxRetries` never repeats a capture, because this API contract has no idempotency guarantee. Network/stream failures, timeouts, 408/409/5xx, unexpected 2xx and missing-receipt failures set `outcomeUnknown: true`; inspect saved Records before another attempt.
 
 ---
 
@@ -177,3 +178,9 @@ Content-Type: application/json
 ```
 
 The `environment` is determined server-side by the API key. You do not need to specify it in the request payload.
+
+## Capture limits and uncertain outcomes
+
+`workflowId` supports 1–128 characters. `operationalContext` supports up to 20 string references (names up to 64 characters; values up to 128). AI input/output belongs in `aiAssistedContext`, not retrieval references. The complete JSON payload must fit 256 KiB in UTF-8. Validation never truncates data or mutates the supplied maps.
+
+Unexpected 2xx or HTTP 201 without a nonempty `decisionRecordId` throws `CAPTURE_RESULT_UNCONFIRMED` with `outcomeUnknown: true`. Network/stream errors, timeouts and 408/409/5xx may have occurred after saving; no automatic retry is made. A receipt without `createdAt` has no `capturedAt` value. See [Errors and retries](errors-and-retries.md). This candidate remains unvalidated against authenticated live capture. Retrieval and integrity checks require Console Cognito authentication and are not capture-key SDK methods.

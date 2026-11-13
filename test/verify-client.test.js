@@ -158,7 +158,7 @@ test("invalid API key returns 401 VerifyError", async (t) => {
   );
 });
 
-test("429 rate limit is retryable", async (t) => {
+test("429 capture is not automatically retried", async (t) => {
   const verify = new VerifyClient({
     apiKey: "obv_sandbox_test.secret1234567890123456789012",
     environment: "sandbox",
@@ -184,13 +184,13 @@ test("429 rate limit is retryable", async (t) => {
     (err) => {
       assert.equal(err instanceof VerifyError, true);
       assert.equal(err.statusCode, 429);
-      assert.equal(err.retryable, true);
+      assert.equal(err.retryable, false);
       return true;
     }
   );
 });
 
-test("network timeout throws retryable VerifyError", async (t) => {
+test("network timeout marks capture outcome unknown without retry", async (t) => {
   const verify = new VerifyClient({
     apiKey: "obv_sandbox_test.secret1234567890123456789012",
     environment: "sandbox",
@@ -222,13 +222,13 @@ test("network timeout throws retryable VerifyError", async (t) => {
     (err) => {
       assert.equal(err instanceof VerifyError, true);
       assert.equal(err.code, "TIMEOUT");
-      assert.equal(err.retryable, true);
+      assert.equal(err.retryable, false);
       return true;
     }
   );
 });
 
-test("500 server error is retryable", async (t) => {
+test("500 capture marks outcome unknown without retry", async (t) => {
   const verify = new VerifyClient({
     apiKey: "obv_sandbox_test.secret1234567890123456789012",
     environment: "sandbox",
@@ -255,7 +255,7 @@ test("500 server error is retryable", async (t) => {
       assert.equal(err instanceof VerifyError, true);
       assert.equal(err.statusCode, 500);
       assert.equal(err.code, "INTERNAL_ERROR");
-      assert.equal(err.retryable, true);
+      assert.equal(err.retryable, false);
       return true;
     }
   );
@@ -289,8 +289,8 @@ test("maps convenience fields to API payload correctly", async (t) => {
   assert.equal(capturedBody.workflowId, "loan-review");
   assert.equal(capturedBody.operationalContext.retrievalKey, "loan-99999");
   assert.equal(capturedBody.operationalContext.decisionType, "automated-decision");
-  assert.equal(capturedBody.operationalContext.prompt, "Should we approve this loan?");
-  assert.equal(capturedBody.operationalContext.response, "Approved based on credit score.");
+  assert.equal(capturedBody.aiAssistedContext.prompt, "Should we approve this loan?");
+  assert.equal(capturedBody.aiAssistedContext.output, "Approved based on credit score.");
   assert.equal(capturedBody.model.provider, "openai");
   assert.equal(capturedBody.model.modelId, "gpt-4");
 });
@@ -363,7 +363,7 @@ test("throws UNSUPPORTED_FIELD for 'completion' — use 'response' instead", () 
   );
 });
 
-test("'response' field maps correctly to operationalContext.response", async (t) => {
+test("'response' field maps losslessly to aiAssistedContext.output", async (t) => {
   const verify = new VerifyClient({
     apiKey: "obv_sandbox_test.secret1234567890123456789012",
     environment: "sandbox",
@@ -384,10 +384,10 @@ test("'response' field maps correctly to operationalContext.response", async (t)
     model: { provider: "test", modelId: "test" },
   });
 
-  assert.equal(capturedBody.operationalContext.response, "The model generated this response.");
+  assert.equal(capturedBody.aiAssistedContext.output, "The model generated this response.");
 });
 
-test("'prompt' field maps correctly to operationalContext.prompt", async (t) => {
+test("'prompt' field maps losslessly to aiAssistedContext.prompt", async (t) => {
   const verify = new VerifyClient({
     apiKey: "obv_sandbox_test.secret1234567890123456789012",
     environment: "sandbox",
@@ -408,5 +408,5 @@ test("'prompt' field maps correctly to operationalContext.prompt", async (t) => 
     model: { provider: "test", modelId: "test" },
   });
 
-  assert.equal(capturedBody.operationalContext.prompt, "Summarize this document.");
+  assert.equal(capturedBody.aiAssistedContext.prompt, "Summarize this document.");
 });

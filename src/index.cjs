@@ -11,7 +11,7 @@ module.exports = new Proxy({}, {
         'Use one of:\n' +
         '  1. Add "type": "module" to your package.json, then: import { VerifyClient } from "@obligra/verify-sdk"\n' +
         '  2. Rename your file to .mjs, then: import { VerifyClient } from "@obligra/verify-sdk"\n' +
-        '  3. Use dynamic import: const { VerifyClient } = await import("@obligra/verify-sdk")'
+        '  3. Use dynamic import inside an async function: async function main() { const { VerifyClient } = await import("@obligra/verify-sdk"); }'
       );
     }
     return _module[prop];

@@ -11,6 +11,7 @@ import { VerifyClient } from "@obligra/verify-sdk";
 
 const verify = new VerifyClient({
   apiKey: process.env.VERIFY_API_KEY,
+  baseUrl: process.env.VERIFY_BASE_URL,
   environment: "sandbox"
 });
 
@@ -33,13 +34,13 @@ console.log(result.status);           // "recorded"
 
 ## Request Fields
 
-### Required
+### Core fields
 
 | Field | Type | Description |
 |---|---|---|
 | `workflowId` | string | Identifies the workflow that generated the decision |
-| `operationalContext` | object | Key-value pairs (string values) describing the decision context |
-| `model` | object | `{ provider: string, modelId: string }` — the AI model used |
+| `operationalContext` | object | Optional string references; defaults to convenience fields or `{}` |
+| `model` | object | Optional `{ provider, modelId }`; missing values default to `"unknown"` |
 
 ### Optional (Convenience)
 
@@ -49,8 +50,8 @@ These fields are mapped into the API payload automatically:
 |---|---|---|---|
 | `retrievalKey` | string | `operationalContext.retrievalKey` | Customer-defined retrieval identifier |
 | `decisionType` | string | `operationalContext.decisionType` | Category of AI-assisted activity |
-| `prompt` | string | `operationalContext.prompt` | Truncated to 512 characters |
-| `response` | string | `operationalContext.response` | Truncated to 512 characters |
+| `prompt` | string | `aiAssistedContext.prompt` | Retained without truncation |
+| `response` | string | `aiAssistedContext.output` | Retained without truncation |
 | `metadata` | object | `model` | `metadata.model` → `model.modelId`, `metadata.modelProvider` → `model.provider` |
 
 If you provide both explicit fields and convenience fields, explicit values take precedence.
@@ -63,7 +64,7 @@ Examples: `claim-review`, `fraud-analysis`, `clinical-summary`, `audit-analysis`
 
 ### operationalContext
 
-Key-value pairs providing workflow context. All values must be strings. Maximum 50 keys, 64 chars per key, 512 chars per value.
+Searchable references providing workflow context. All values must be strings. Maximum 20 keys, 64 characters per key, 128 characters per value. Keep AI input/output in `aiAssistedContext`.
 
 ```javascript
 operationalContext: {
@@ -89,7 +90,7 @@ model: {
 
 ## Response
 
-HTTP 201 Created:
+Illustrative HTTP 201 Created receipt (optional metadata appears only when returned by the server):
 
 ```json
 {
@@ -129,6 +130,7 @@ import { VerifyClient, VerifyError } from "@obligra/verify-sdk";
 
 const verify = new VerifyClient({
   apiKey: process.env.VERIFY_API_KEY,
+  baseUrl: process.env.VERIFY_BASE_URL,
   environment: "sandbox"
 });
 
@@ -152,7 +154,8 @@ try {
   console.log(`Retained until: ${result.retentionUntil}`);
 } catch (err) {
   if (err instanceof VerifyError) {
-    console.error(`[${err.code}] ${err.message} (retryable: ${err.retryable})`);
+    console.error(`[${err.code}] HTTP ${err.statusCode ?? "unavailable"}`);
+    if (err.outcomeUnknown) console.error("The record may have been saved. Check Records before another attempt.");
   }
 }
 ```
@@ -181,3 +184,13 @@ Include fields that help with future retrieval and review:
 ## Important
 
 The Verify SDK exposes only the customer-facing capture interface. It does not expose internal platform implementation details, processing logic, or infrastructure design.
+
+## Current contract and acceptance limits
+
+This source includes an unreleased correction. For authorized Test evaluation, replace `REVIEWED_COMMIT` with the exact reviewed revision and confirm that it contains the correction. Authenticated live SDK capture/retrieval has not yet been validated for this revision; source review and merging alone do not complete release acceptance.
+
+Use the approved API-key capture origin (`https://api.obligra.ai` for the existing deployment). The SDK appends `/decision-records`; do not add the console API prefix `/api/v1`.
+
+Keep searchable identifiers in `operationalContext` (up to 20 string values of at most 128 characters). Convenience `prompt` and `response` map without truncation to `aiAssistedContext.prompt` and `aiAssistedContext.output`. Explicit AI-context values take precedence. The full UTF-8 JSON request must fit 256 KiB. No model is called by capture.
+
+Captures are never automatically retried. For `outcomeUnknown` errors, reconcile existing saved Records before another attempt. See [Errors and capture safety](errors-and-retries.md). Use only fictional or synthetic Test data during validation; keep keys server-side and out of logs/recordings.

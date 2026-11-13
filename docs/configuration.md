@@ -1,221 +1,29 @@
 # Configuration
 
-This document explains how to configure the Obligra Verify Node.js SDK.
-
-## Overview
-
-The Verify SDK is configured through the `VerifyClient` constructor.
-
-At minimum, a client requires:
-
-* API Key
-* Environment
-
-Optional settings may be used to control request timeouts, retry behavior, logging, and advanced deployment scenarios.
-
-## Basic Configuration
+This unreleased capture correction passes offline tests on Node.js 18.20.8, 22.20.0 and 24.10.0. The declared 18.0.0 minimum passes native HTTP and CommonJS import smoke checks. These checks ran on macOS arm64; use Node.js 22 or 24 for the documented preview setup. Three options are required, directly or through environment variables:
 
 ```javascript
 import { VerifyClient } from "@obligra/verify-sdk";
-
 const verify = new VerifyClient({
   apiKey: process.env.VERIFY_API_KEY,
-  environment: "sandbox"
-});
-```
-
-## Configuration Options
-
-| Option        | Type    | Required | Description                              |
-| ------------- | ------- | -------- | ---------------------------------------- |
-| apiKey        | string  | Yes      | Obligra Verify API key                   |
-| environment   | string  | Yes      | Verify environment                       |
-| timeoutMs     | number  | No       | Request timeout in milliseconds          |
-| maxRetries    | number  | No       | Maximum retry attempts                   |
-| baseUrl       | string  | No       | Custom endpoint for approved deployments |
-| enableLogging | boolean | No       | Enables SDK diagnostic logging           |
-
-## Environment Values
-
-Supported environments:
-
-```text
-sandbox
-production
-```
-
-Example:
-
-```javascript
-const verify = new VerifyClient({
-  apiKey: process.env.VERIFY_API_KEY,
-  environment: "production"
-});
-```
-
-## Environment Variables
-
-Recommended configuration:
-
-```bash
-VERIFY_API_KEY=your_api_key
-VERIFY_ENVIRONMENT=sandbox
-```
-
-Example usage:
-
-```javascript
-const verify = new VerifyClient({
-  apiKey: process.env.VERIFY_API_KEY,
-  environment: process.env.VERIFY_ENVIRONMENT
-});
-```
-
-## Timeouts
-
-The SDK supports configurable request timeouts.
-
-Example:
-
-```javascript
-const verify = new VerifyClient({
-  apiKey: process.env.VERIFY_API_KEY,
-  environment: "sandbox",
-  timeoutMs: 10000
-});
-```
-
-The example above sets a timeout of:
-
-```text
-10 seconds
-```
-
-## Retry Configuration
-
-Retry behavior helps protect against temporary service interruptions.
-
-Example:
-
-```javascript
-const verify = new VerifyClient({
-  apiKey: process.env.VERIFY_API_KEY,
-  environment: "sandbox",
-  maxRetries: 2
-});
-```
-
-Recommended settings:
-
-```text
-maxRetries: 2
-timeoutMs: 10000
-```
-
-## Logging
-
-Diagnostic logging may be enabled during development.
-
-Example:
-
-```javascript
-const verify = new VerifyClient({
-  apiKey: process.env.VERIFY_API_KEY,
-  environment: "sandbox",
-  enableLogging: true
-});
-```
-
-### Important
-
-Do not enable verbose logging if logs may contain:
-
-* customer identifiers
-* prompts
-* model outputs
-* regulated data
-* sensitive operational records
-
-## Custom Endpoints
-
-Advanced deployments may use a customer-owned Verify proxy or approved private integration endpoint.
-
-Example:
-
-```javascript
-const verify = new VerifyClient({
-  apiKey: process.env.VERIFY_API_KEY,
-  environment: "sandbox",
-  baseUrl: "https://verify-proxy.example.com"
-});
-```
-
-Custom endpoints should only be used when explicitly approved and documented.
-
-## Security Best Practices
-
-### Use Environment Variables
-
-Recommended:
-
-```bash
-VERIFY_API_KEY=your_api_key
-```
-
-Avoid:
-
-```javascript
-const verify = new VerifyClient({
-  apiKey: "hardcoded-api-key"
-});
-```
-
-### Use a Secrets Manager
-
-Production environments should store credentials in:
-
-* AWS Secrets Manager
-* AWS Systems Manager Parameter Store
-* Azure Key Vault
-* HashiCorp Vault
-* equivalent enterprise secrets platform
-
-### Protect Logs
-
-Do not write the following to logs:
-
-* API keys
-* prompts
-* model outputs
-* customer records
-* authentication tokens
-
-## Example Production Configuration
-
-```javascript
-const verify = new VerifyClient({
-  apiKey: process.env.VERIFY_API_KEY,
-  environment: "production",
+  environment: process.env.VERIFY_ENVIRONMENT,
+  baseUrl: process.env.VERIFY_BASE_URL,
   timeoutMs: 10000,
-  maxRetries: 2
 });
 ```
 
-## Validation Checklist
+Use `sandbox` as the API's internal value for Test. The API key determines the actual workspace and environment; the `environment` option does not switch the key's scope. Do not infer Production access from a string setting.
 
-Before deploying:
+The API-key capture base URL for the existing deployment is `https://api.obligra.ai`; the SDK appends `/decision-records`. `/api/v1` is used by the separate Cognito-authenticated console routes. Custom approved deployments may supply their own base URL. Do not put keys in URLs.
 
-* API key configured
-* Environment configured
-* Timeout configured
-* Retry behavior reviewed
-* Logging reviewed
-* Secrets stored securely
+Use the final endpoint directly. HTTP redirects are rejected so they cannot resend a capture body or key to another target.
 
-## Related Documentation
+`timeoutMs` defaults to 10000 and must be an integer from 1 to 2147483647. It is a total request deadline covering connection, headers and body consumption. Stalled or interrupted responses leave the capture outcome unknown. A blocked JavaScript event loop can delay timer delivery; a response observed past the deadline is not accepted as success.
 
-* Quick Start
-* Capture Decision Record
-* API Reference
-* Errors and Retries
-* FAQ
+`maxRetries` is retained for compatibility but never repeats captures. `enableLogging` defaults to false; it logs method/URL, not headers or payloads. Keep URLs free of sensitive information and do not print error response bodies or application secrets.
+
+The SDK does not load `.env`. Inject/export variables before starting Node, or use `node --env-file=.env server.mjs` on Node.js 20.6+. A file alone does not populate `process.env`.
+
+The key needs `records:write`. Record retrieval and integrity checks require Console Cognito authentication; the capture key and `environment` label do not provide it.
+
+Keep keys in an approved server-side secret mechanism, out of source control, browser code/storage, screenshots and recordings. This documentation does not authorize creating, saving or moving a key. Authenticated acceptance of this candidate is pending.

@@ -20,7 +20,7 @@
   "scripts": {
     "test": "node --test",
     "audit:check": "npm audit --omit=dev",
-    "example:basic": "VERIFY_API_KEY=test VERIFY_ENVIRONMENT=sandbox node examples/basic-capture/index.js"
+    "example:basic": "node examples/basic-capture/index.js"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -92,7 +92,7 @@ Typical SDK responsibilities include:
 * API authentication
 * decision record capture
 * workflow metadata handling
-* retry handling
+* uncertain write handling without automatic capture retries
 * structured error handling
 
 ---
@@ -128,6 +128,7 @@ Example:
 ```javascript
 const verify = new VerifyClient({
   apiKey: process.env.VERIFY_API_KEY,
+  baseUrl: process.env.VERIFY_BASE_URL,
   environment: "sandbox"
 });
 ```

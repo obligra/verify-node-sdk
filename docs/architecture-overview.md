@@ -23,7 +23,7 @@ In the standard pattern, a customer application calls the Verify SDK after an AI
 │                              │
 │ validates request            │
 │ applies configuration        │
-│ handles errors/retries       │
+│ marks uncertain outcomes       │
 └───────────────┬──────────────┘
                 │
                 │ HTTPS request
@@ -172,7 +172,7 @@ The SDK is responsible for:
 * request validation
 * decision record capture
 * structured error handling
-* safe retry behavior
+* a single capture attempt with explicit uncertainty
 
 ## What the SDK Does Not Do
 

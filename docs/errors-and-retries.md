@@ -1,196 +1,31 @@
-# Errors and Retries
+# Errors and capture safety
 
-This document explains how the Obligra Verify Node.js SDK should handle errors, retries, and temporary failures.
+A capture is a write. This SDK makes exactly one HTTP attempt, even if `maxRetries` is supplied. A lost response does not establish that the record was not saved. No idempotency guarantee is assumed.
 
-The SDK is currently in early integration preview. Error names, codes, and retry behavior may change before general availability.
+`VerifyError` exposes `code`, optional `statusCode`, `retryable` (false for capture errors), `outcomeUnknown`, and optional `response`. Do not log raw responses or secrets.
 
-## Overview
+| Outcome | What to do |
+|---|---|
+| Local invalid input / oversized payload | Correct the input. No HTTP request was made. |
+| 400 / 401 / 403 / 404 / 429 | Read the returned error and correct configuration, permissions or input; the SDK does not retry. Do not assume another attempt is safe solely from the status. |
+| Network/stream failure / total deadline / 408 / 409 / 5xx | `outcomeUnknown: true`. The capture may have been saved. Check existing Records before any retry. |
+| Unexpected 2xx or HTTP 201 without a usable record ID | `CAPTURE_RESULT_UNCONFIRMED`, `outcomeUnknown: true`. Reconcile Records; do not claim success. |
+| HTTP 201 object with a nonempty string record ID | Inspect the saved record and returned metadata. An integrity result is a separate operation. |
 
-SDK error handling should help developers understand:
-
-* What failed
-* Whether the request reached Verify
-* Whether the request can be retried safely
-* What action should be taken next
-
-## Error Shape
-
-SDK errors should use a consistent structure.
-
-```json
-{
-  "name": "VerifyAuthenticationError",
-  "message": "Invalid or missing Verify API key.",
-  "statusCode": 401,
-  "code": "VERIFY_AUTHENTICATION_FAILED",
-  "retryable": false
-}
-```
-
-## Error Fields
-
-| Field        | Description                                            |
-| ------------ | ------------------------------------------------------ |
-| `name`       | SDK error name.                                        |
-| `message`    | Human-readable error message.                          |
-| `statusCode` | HTTP status code, when available.                      |
-| `code`       | Stable SDK or API error code.                          |
-| `retryable`  | Indicates whether the operation may be retried safely. |
-
-## Common HTTP Errors
-
-| Status | Meaning                    | Retryable | Recommended Action                                 |
-| -----: | -------------------------- | --------- | -------------------------------------------------- |
-|    400 | Invalid request            | No        | Check required fields and payload format.          |
-|    401 | Missing or invalid API key | No        | Confirm API key configuration.                     |
-|    403 | Access denied              | No        | Confirm account, workspace, or environment access. |
-|    404 | Endpoint not found         | No        | Confirm environment and endpoint configuration.    |
-|    409 | Conflict                   | Maybe     | Confirm workflow and retrieval key behavior.       |
-|    429 | Rate limited               | Yes       | Retry with backoff.                                |
-|    500 | Server error               | Yes       | Retry with backoff.                                |
-|    502 | Bad gateway                | Yes       | Retry with backoff.                                |
-|    503 | Service unavailable        | Yes       | Retry with backoff.                                |
-|    504 | Gateway timeout            | Yes       | Retry with backoff.                                |
-
-## Retryable Failures
-
-The SDK may retry temporary failures when it is safe to do so.
-
-Retryable examples:
-
-```text
-429 Too Many Requests
-500 Internal Server Error
-502 Bad Gateway
-503 Service Unavailable
-504 Gateway Timeout
-Network timeout
-Temporary connection failure
-```
-
-## Non-Retryable Failures
-
-The SDK should not retry failures caused by invalid configuration, authorization issues, or malformed requests.
-
-Non-retryable examples:
-
-```text
-400 Invalid request
-401 Authentication failed
-403 Access denied
-Invalid payload
-Missing required fields
-Invalid API key
-```
-
-## Recommended Retry Defaults
-
-Recommended preview defaults:
-
-```text
-maxRetries: 2
-timeoutMs: 10000
-backoff: exponential
-jitter: enabled
-```
-
-## Example Configuration
-
-```javascript
-import { VerifyClient } from "@obligra/verify-sdk";
-
-const verify = new VerifyClient({
-  apiKey: process.env.VERIFY_API_KEY,
-  environment: "sandbox",
-  timeoutMs: 10000,
-  maxRetries: 2
-});
-```
-
-## Example Error Handling
+The deadline remains active until the full response body is consumed. An interrupted body is `NETWORK_ERROR`; complete malformed JSON on HTTP 201 stays unconfirmed. Known HTTP status is preserved on transport errors after headers. An explicit `outcomeUnknown: true` in an error response is preserved. Captures are never retried automatically, including after 429.
 
 ```javascript
 try {
-  const result = await verify.captureDecisionRecord({
-    workflowId: "claim-review",
-    retrievalKey: "claim-12345",
-    decisionType: "ai-assisted-review",
-    prompt: "Summarize this claim.",
-    response: "Claim summary output."
-  });
-
-  console.log(result);
-}
-catch (error) {
-  if (error.retryable) {
-    console.error("Temporary Verify capture failure. Retry may be safe.");
+  const receipt = await verify.captureDecisionRecord(fictionalRecord);
+  // Use receipt.decisionRecordId to inspect the saved record.
+} catch (error) {
+  if (error.outcomeUnknown) {
+    // Stop. Reconcile saved Records before deciding on another attempt.
+  } else {
+    // Inspect a sanitized code/status and correct the cause.
   }
-  else {
-    console.error("Verify capture failed:", error.message);
-  }
+  throw error;
 }
 ```
 
-## Rate Limits
-
-If the SDK receives a `429` response, it should treat the failure as retryable.
-
-Recommended behavior:
-
-* Respect retry headers when provided
-* Use exponential backoff
-* Add jitter to avoid synchronized retries
-* Stop retrying after `maxRetries`
-
-## Timeout Handling
-
-If a request times out, the SDK should treat the result as unknown unless Verify confirms whether the record was captured.
-
-Recommended behavior:
-
-* Return a clear timeout error
-* Mark timeout errors as retryable when appropriate
-* Avoid duplicate captures when idempotency support is available
-
-## Idempotency
-
-Future SDK versions may support idempotency keys to reduce duplicate capture risk during retries.
-
-Until idempotency behavior is explicitly documented, customers should design retry behavior carefully and use stable values for:
-
-* `workflowId`
-* `retrievalKey`
-* `decisionType`
-
-## Logging Guidance
-
-Applications should avoid logging full decision records unless approved by organizational policy.
-
-Do not log:
-
-* API keys
-* authentication tokens
-* prompts
-* model outputs
-* customer records
-* regulated data
-
-Safe logs may include:
-
-* status code
-* SDK error code
-* retryable flag
-* timestamp
-* sanitized workflow identifier
-
-## Support
-
-If repeated capture failures occur, contact:
-
-[support@obligra.ai](mailto:support@obligra.ai)
-
-For suspected security issues, contact:
-
-[security@obligra.ai](mailto:security@obligra.ai)
-
-Do not include API keys, secrets, prompts, outputs, or customer records in support tickets unless explicitly requested through an approved secure process.
+`capturedAt` only aliases the server's `createdAt`; no timestamp is synthesized. A saved record does not establish correct AI output, complete capture, compliance, or application integration. This correction is offline-tested; authenticated live SDK acceptance remains pending.

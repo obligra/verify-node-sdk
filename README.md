@@ -15,29 +15,29 @@ This SDK is intended for developers building AI-assisted operational workflows t
 | | URL |
 |---|---|
 | Verify Console | https://console.obligra.ai |
-| Verify API | https://api.obligra.ai/api/v1 |
+| Verify API | https://api.obligra.ai |
 | Documentation | https://obligra.ai/resources |
 
 ## Status
 
 **Public Preview**
 
-- Validated against the Obligra Verify production platform
-- Suitable for development, testing, and preview deployments
-- Production use supported for approved Verify environments
-- Additional SDK enhancements and language support in progress
+- This source includes a capture-contract and write-safety correction; live acceptance remains pending.
+- Offline mocked-HTTP tests pass; authenticated end-to-end acceptance of this revision is still pending.
+- Earlier validation reports describe earlier revisions and are not a current release acceptance result.
+- Use only fictional or synthetic input in a Test environment during validation.
 
 ## Requirements
 
-- Node.js 18 or later
+- Use Node.js 22 or 24 for this preview. Offline tests pass on 18.20.8, 22.20.0 and 24.10.0; the declared 18.0.0 minimum passes native HTTP and CommonJS import smoke checks. These checks ran on macOS arm64, not every supported platform or Node release. Node 18.0.0 reports its built-in fetch as experimental.
 - No additional runtime dependencies (the SDK uses only Node.js built-in APIs)
 
 ## Installation
 
-Install directly from GitHub:
+For an authorized Test evaluation, install an exact reviewed GitHub commit (replace `REVIEWED_COMMIT`; confirm which revision you are evaluating):
 
 ```bash
-npm install github:obligra/verify-node-sdk
+npm install github:obligra/verify-node-sdk#REVIEWED_COMMIT
 ```
 
 > **Note:** npm package publication (`npm install @obligra/verify-sdk`) is planned for the production release. During the preview period, install from GitHub.
@@ -45,14 +45,17 @@ npm install github:obligra/verify-node-sdk
 ## Getting Credentials
 
 1. Create or sign into your Verify Builder account at the Obligra Verify Console
-2. Navigate to **Settings → API Keys**
-3. Create a Verify API key from the Verify Console — copy the secret shown once (it cannot be retrieved again)
-4. Set environment variables:
+2. Navigate to **API Keys**
+3. Use a key for your intended **Test** workspace/environment with `records:write`. If you need a new key, create it in the Console and save the one-time secret through your approved secret mechanism.
+4. Inject `VERIFY_API_KEY` into the backend process through that mechanism, then set the capture origin:
 
 ```bash
-export VERIFY_API_KEY=obv_sandbox_YOUR_PREFIX.YOUR_SECRET
-export VERIFY_BASE_URL=https://api.obligra.ai/api/v1
+export VERIFY_BASE_URL=https://api.obligra.ai
 ```
+
+The SDK reads `process.env`; it does **not** load `.env` automatically. For an approved local `.env` file, Node.js 20.6+ supports `node --env-file=.env server.mjs`. Keep that file out of Git and recordings. Otherwise export/inject the variables before `node server.mjs`.
+
+The key determines the real workspace and environment. `environment: "sandbox"` is the SDK's required legacy label for Test; it does not change a key's scope or protect against using a Production key. Retrieval and integrity checks use your signed-in Console session, not this capture key.
 
 ## Security
 
@@ -76,12 +79,12 @@ The Verify API key should only be accessible to trusted backend services.
 
 ## Quick Start
 
-### Option A: Use `.mjs` (works immediately, no config needed)
+### Option A: Use `.mjs`
 
-Create `server.mjs`:
+Create `server.mjs` after installing and configuring the SDK. Running it submits one fictional record. It does not call a model; your application chooses when to call `captureDecisionRecord` and which data to include.
 
 ```javascript
-import { VerifyClient } from "@obligra/verify-sdk";
+import { VerifyClient, VerifyError } from "@obligra/verify-sdk";
 
 const verify = new VerifyClient({
   baseUrl: process.env.VERIFY_BASE_URL,
@@ -89,43 +92,43 @@ const verify = new VerifyClient({
   environment: "sandbox"
 });
 
-const result = await verify.captureDecisionRecord({
-  workflowId: "claim-review-001",
-  prompt: "Summarize this claim for review.",
-  response: "Based on the documentation provided, this claim meets approval criteria.",
-  operationalContext: {
-    claimId: "claim-12345",
-    reviewType: "ai-assisted",
-    outcome: "approved"
-  },
-  model: {
-    provider: "anthropic",
-    modelId: "claude-sonnet-4-20250514"
+try {
+  const receipt = await verify.captureDecisionRecord({
+    workflowId: "fictional-first-record",
+    retrievalKey: "fictional-case-001",
+    prompt: "Summarize the fictional case for review.",
+    response: "This fictional case needs a reviewer. No model was called.",
+    model: { provider: "synthetic", modelId: "no-model-call" }
+  });
+  console.log("Record ID:", receipt.decisionRecordId);
+  console.log("Created:", receipt.createdAt ?? "not returned");
+  console.log("Status:", receipt.status ?? "not returned");
+} catch (error) {
+  // Log sanitized fields, not the key, payload or raw server error body.
+  console.error(error instanceof VerifyError ? error.code : "UNEXPECTED_ERROR");
+  if (error.outcomeUnknown) {
+    console.error("The record may have been saved. Check Records before another attempt.");
   }
-});
-
-console.log(result.decisionRecordId); // "dr_..."
-console.log(result.status);           // "recorded"
-console.log(result.verificationState); // "not_verified"
+  process.exitCode = 1;
+}
 ```
 
 Run:
 
 ```bash
-VERIFY_BASE_URL=https://api.obligra.ai/api/v1 \
-VERIFY_API_KEY=obv_sandbox_YOUR.KEY \
 node server.mjs
 ```
 
 ## What Happens Next?
 
-When a decision record is successfully captured:
+The SDK accepts a capture receipt only from HTTP 201 with a nonempty `decisionRecordId`. Other successful HTTP statuses and missing/malformed receipts remain unconfirmed. Optional metadata is returned as supplied by the server; the SDK does not invent status or timestamps.
 
-1. The record is retained by the Verify platform
-2. A unique decision record identifier is returned
-3. A console URL is generated
-4. Authorized users can inspect the record in the Verify Console
-5. Verification can be executed later to validate record integrity
+1. Sign into the Verify Console and select the same workspace and Test environment as the key.
+2. Find the returned record ID, or search for `fictional-case-001`.
+3. Compare the retained prompt, output and references with exactly what you submitted.
+4. Run the record's integrity check and inspect its actual result. Integrity verification is not human review, model-output correctness or a compliance certification.
+
+The capture key cannot retrieve records or perform integrity checks through this SDK. Use the Console's Cognito-authenticated session for those operations.
 
 Example console URL:
 
@@ -152,8 +155,17 @@ import { VerifyClient } from "@obligra/verify-sdk";
 The SDK is ESM-only. If your project uses CommonJS, use one of:
 
 ```javascript
-// Dynamic import (works in CommonJS .js files with Node.js 18+)
-const { VerifyClient } = await import("@obligra/verify-sdk");
+// server.cjs — dynamic import must be inside an async function.
+async function main() {
+  const { VerifyClient, VerifyError } = await import("@obligra/verify-sdk");
+  const verify = new VerifyClient({
+    apiKey: process.env.VERIFY_API_KEY,
+    baseUrl: process.env.VERIFY_BASE_URL,
+    environment: "sandbox"
+  });
+  // Put the same single capture call and error handling shown above here.
+}
+main().catch(() => { process.exitCode = 1; });
 ```
 
 Or rename your file to `.mjs` and use the standard `import` syntax.
@@ -211,8 +223,8 @@ Examples:
 
 - API key authentication (`X-Verify-Api-Key` header)
 - Decision record capture via HTTPS
-- Automatic retry with exponential backoff (429, 5xx)
-- Configurable timeout
+- One HTTP attempt per capture; uncertain writes are never retried automatically
+- Configurable total deadline covering the connection, response headers and body
 - Structured error responses (`VerifyError` with `code`, `statusCode`, `retryable`)
 - Operational context and model metadata capture
 - Convenience field mapping (`retrievalKey`, `decisionType`, `prompt`, `response`)
@@ -221,17 +233,19 @@ Examples:
 
 ## Validation Status
 
-| Check | Status |
-|---|---|
-| GitHub install | ✅ Validated |
-| Clean-room install | ✅ Validated |
-| API key authentication | ✅ Validated |
-| Decision record capture | ✅ Validated |
-| Record retrieval via console | ✅ Validated |
-| Record verification via console | ✅ Validated |
-| Review history audit trail | ✅ Validated |
-| Runtime dependencies | Zero |
-| npm audit | Clean (0 vulnerabilities) |
+This unreleased correction is covered by offline SDK tests and comparison with the current backend payload validator. It has not passed an authenticated capture/retrieval test in the deployed environment. No production or integration-readiness claim follows from mocked tests.
+
+Before releasing, review the migration below, pin the exact candidate commit, then validate one explicitly authorized synthetic server-side capture and its saved receipt. Keep the key out of browser code, logs and recordings. If the result is uncertain, reconcile existing records before another attempt.
+
+## Migration from 0.1.2
+
+- `prompt` and `response` now map losslessly to `aiAssistedContext.prompt` and `aiAssistedContext.output`. Explicit AI-context values take precedence, including empty strings. Existing records are not changed.
+- Move any legacy prompt/output values out of `operationalContext` before upgrading. Existing records are not rewritten.
+- Search references stay in `operationalContext`: up to 20 string values, each at most 128 characters; names at most 64 characters. The complete UTF-8 JSON payload must fit 256 KiB. Invalid data is rejected before HTTP rather than shortened.
+- Captures are attempted once, even if `maxRetries` is supplied. Network/stream failures, timeouts, 408/409/5xx, unexpected 2xx and missing-receipt outcomes are marked `outcomeUnknown`; inspect saved Records before deciding whether another attempt is safe. There is no server idempotency guarantee in this contract.
+- `timeoutMs` now covers response-body consumption as well as connection/headers. It must be an integer from 1 to 2147483647; invalid values are rejected before HTTP.
+- The API-key capture base URL is the origin `https://api.obligra.ai`; the SDK appends `/decision-records`. The Cognito-protected console API prefix `/api/v1` is a different route. Confirm your approved deployment endpoint before using a key.
+- `capturedAt` aliases the server's `createdAt` only; no client timestamp or successful status is invented when missing.
 
 ## Documentation
 
