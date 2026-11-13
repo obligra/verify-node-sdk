@@ -34,13 +34,13 @@ console.log(result.status);           // "recorded"
 
 ## Request Fields
 
-### Required
+### Core fields
 
 | Field | Type | Description |
 |---|---|---|
 | `workflowId` | string | Identifies the workflow that generated the decision |
-| `operationalContext` | object | Key-value pairs (string values) describing the decision context |
-| `model` | object | `{ provider: string, modelId: string }` — the AI model used |
+| `operationalContext` | object | Optional string references; defaults to convenience fields or `{}` |
+| `model` | object | Optional `{ provider, modelId }`; missing values default to `"unknown"` |
 
 ### Optional (Convenience)
 
@@ -64,7 +64,7 @@ Examples: `claim-review`, `fraud-analysis`, `clinical-summary`, `audit-analysis`
 
 ### operationalContext
 
-Key-value pairs providing workflow context. All values must be strings. Maximum 50 keys, 64 chars per key, 512 chars per value.
+Searchable references providing workflow context. All values must be strings. Maximum 20 keys, 64 characters per key, 128 characters per value. Keep AI input/output in `aiAssistedContext`.
 
 ```javascript
 operationalContext: {
@@ -90,7 +90,7 @@ model: {
 
 ## Response
 
-HTTP 201 Created:
+Illustrative HTTP 201 Created receipt (optional metadata appears only when returned by the server):
 
 ```json
 {
@@ -154,7 +154,8 @@ try {
   console.log(`Retained until: ${result.retentionUntil}`);
 } catch (err) {
   if (err instanceof VerifyError) {
-    console.error(`[${err.code}] ${err.message} (retryable: ${err.retryable})`);
+    console.error(`[${err.code}] HTTP ${err.statusCode ?? "unavailable"}`);
+    if (err.outcomeUnknown) console.error("The record may have been saved. Check Records before another attempt.");
   }
 }
 ```

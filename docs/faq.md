@@ -128,6 +128,7 @@ Example:
 ```javascript
 const verify = new VerifyClient({
   apiKey: process.env.VERIFY_API_KEY,
+  baseUrl: process.env.VERIFY_BASE_URL,
   environment: "sandbox"
 });
 ```

@@ -6,6 +6,11 @@
 - Validate searchable reference and whole-payload limits before HTTP.
 - Attempt captures once; mark uncertain outcomes and missing receipts explicitly; do not fabricate timestamps or success status.
 - Correct API-key capture origin documentation and distinguish offline tests from pending live acceptance.
+- Keep the total deadline active through response-body consumption; abort and settle stalled requests once, preserve interrupted-stream failures and reject invalid timeout values.
+- Reject redirects so a capture body/key cannot be resent to another endpoint.
+- Require HTTP 201 plus a usable record ID; keep unexpected 2xx, 408/409 and explicit server uncertainty unconfirmed without retries.
+- Correct CommonJS dynamic import, environment loading, required SDK fields and reference limits; examples no longer override an injected key or print raw error messages.
+- Qualify the Node.js 18 compatibility claim; this candidate is locally tested on Node.js 22 and 24.
 - Migration changes payload location and retry semantics; exact revision review and authenticated Test acceptance are required before release.
 
 

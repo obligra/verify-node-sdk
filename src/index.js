@@ -18,7 +18,7 @@ export class VerifyClient {
   constructor(options = {}) {
     this.apiKey = options.apiKey || process.env.VERIFY_API_KEY;
     this.environment = options.environment || process.env.VERIFY_ENVIRONMENT;
-    this.timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
     this.baseUrl = (options.baseUrl || process.env.VERIFY_BASE_URL || "").replace(/\/+$/, "");
     this.enableLogging = options.enableLogging || false;
@@ -27,6 +27,9 @@ export class VerifyClient {
   }
 
   validateConfig() {
+    if (!Number.isInteger(this.timeoutMs) || this.timeoutMs < 1 || this.timeoutMs > 2147483647) {
+      throw new VerifyError("timeoutMs must be an integer between 1 and 2147483647 milliseconds.", { code: "INVALID_TIMEOUT" });
+    }
     if (!this.baseUrl) {
       throw new VerifyError(
         "Missing Verify API baseUrl. Set VERIFY_BASE_URL or pass baseUrl to VerifyClient. " +
@@ -102,8 +105,9 @@ export class VerifyClient {
     // Capture is a write without a server idempotency contract. Even an
     // opted-in retry count must not repeat an uncertain capture automatically.
     try {
-      const result = await this._fetch(url, { method: "POST", body: JSON.stringify(payload) });
-      if (!result || typeof result.decisionRecordId !== "string" || !result.decisionRecordId.trim()) {
+      const result = await this._fetch(url, { method: "POST", body: JSON.stringify(payload) }, 201);
+      if (!result || typeof result !== "object" || Array.isArray(result) ||
+          typeof result.decisionRecordId !== "string" || !result.decisionRecordId.trim()) {
         throw new VerifyError("The server did not return a capture receipt", {
           code: "CAPTURE_RESULT_UNCONFIRMED", outcomeUnknown: true,
         });
@@ -112,60 +116,82 @@ export class VerifyClient {
     } catch (err) {
       if (err instanceof VerifyError) {
         err.retryable = false;
-        err.outcomeUnknown ||= err.code === "NETWORK_ERROR" || err.code === "TIMEOUT" || err.statusCode >= 500;
+        err.outcomeUnknown ||= err.code === "NETWORK_ERROR" || err.code === "TIMEOUT" ||
+          err.statusCode === 408 || err.statusCode === 409 || err.statusCode >= 500;
         if (err.outcomeUnknown) err.message += ". The capture may have been saved; check Records before retrying.";
       }
       throw err;
     }
   }
 
-  async _fetch(url, options = {}) {
+  async _fetch(url, options = {}, expectedStatus) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const startedAt = performance.now();
+    let response;
+    const timeoutError = () => new VerifyError(`Request timed out after ${this.timeoutMs}ms`, {
+      code: "TIMEOUT", statusCode: response?.status, retryable: true,
+    });
+    let timeout;
+    // The deadline covers headers AND the full body. Racing also settles the
+    // caller if a fetch wrapper ignores abort; a late response cannot win.
+    const deadline = new Promise((_, reject) => {
+      timeout = setTimeout(() => {
+        reject(timeoutError());
+        controller.abort();
+      }, this.timeoutMs);
+    });
 
     const headers = {
       "Content-Type": "application/json",
       "X-Verify-Api-Key": this.apiKey,
     };
 
-    if (this.enableLogging) {
-      console.log(`[verify-sdk] ${options.method || "GET"} ${url}`);
-    }
-
-    let response;
     try {
-      response = await fetch(url, {
-        ...options,
-        headers,
-        signal: controller.signal,
-      });
-    } catch (err) {
-      clearTimeout(timeout);
-      if (err.name === "AbortError") {
-        throw new VerifyError(`Request timed out after ${this.timeoutMs}ms`, { code: "TIMEOUT", retryable: true });
+      if (this.enableLogging) {
+        console.log(`[verify-sdk] ${options.method || "GET"} ${url}`);
       }
-      throw new VerifyError(`Network error: ${err.message}`, { code: "NETWORK_ERROR", retryable: true });
+      const request = (async () => {
+        // Redirects can resend POST bodies and credentials to another target.
+        response = await fetch(url, { ...options, headers, signal: controller.signal, redirect: "error" });
+        if (controller.signal.aborted) throw timeoutError();
+        let body;
+        try {
+          body = await response.json();
+        } catch (err) {
+          // Invalid complete JSON is not a transport error; a truncated or
+          // aborted stream is, and must keep the capture outcome uncertain.
+          if (err.name !== "SyntaxError") throw err;
+          body = null;
+        }
+        if (controller.signal.aborted || performance.now() - startedAt >= this.timeoutMs) {
+          throw timeoutError();
+        }
+        if (response.ok) {
+          if (expectedStatus !== undefined && response.status !== expectedStatus) {
+            throw new VerifyError("The server did not confirm capture with HTTP 201", {
+              code: "CAPTURE_RESULT_UNCONFIRMED", statusCode: response.status, outcomeUnknown: true,
+            });
+          }
+          return body;
+        }
+        const statusCode = response.status;
+        const retryable = RETRYABLE_STATUS_CODES.has(statusCode);
+        const message = body?.message || body?.error || `HTTP ${statusCode}`;
+        const code = body?.code || STATUS_CODE_MAP[statusCode] || "UNKNOWN_ERROR";
+        throw new VerifyError(message, {
+          statusCode, code, retryable, response: body, outcomeUnknown: body?.outcomeUnknown === true,
+        });
+      })();
+      return await Promise.race([request, deadline]);
+    } catch (err) {
+      if (err instanceof VerifyError) throw err;
+      if (controller.signal.aborted) throw timeoutError();
+      throw new VerifyError(`Network error: ${err.message}`, {
+        code: "NETWORK_ERROR", statusCode: response?.status, retryable: true,
+      });
     } finally {
       clearTimeout(timeout);
     }
-
-    let body;
-    try {
-      body = await response.json();
-    } catch {
-      body = null;
-    }
-
-    if (response.ok) {
-      return body;
-    }
-
-    const statusCode = response.status;
-    const retryable = RETRYABLE_STATUS_CODES.has(statusCode);
-    const message = body?.message || body?.error || `HTTP ${statusCode}`;
-    const code = body?.code || STATUS_CODE_MAP[statusCode] || "UNKNOWN_ERROR";
-
-    throw new VerifyError(message, { statusCode, code, retryable, response: body });
   }
 }
 
@@ -207,6 +233,7 @@ const STATUS_CODE_MAP = {
   401: "UNAUTHORIZED",
   403: "FORBIDDEN",
   404: "NOT_FOUND",
+  408: "REQUEST_TIMEOUT",
   409: "CONFLICT",
   413: "PAYLOAD_TOO_LARGE",
   429: "RATE_LIMITED",

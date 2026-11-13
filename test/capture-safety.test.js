@@ -62,7 +62,7 @@ test("rejects payloads over 256 KiB without silently cutting multibyte text", as
   assert.equal(requests.length, 0);
 });
 
-for (const failure of ["network", 500, 502, 503, 504, 429]) {
+for (const failure of ["network", 408, 409, 500, 502, 503, 504, 429]) {
   test(`capture attempts only once for ${failure}, even with maxRetries supplied`, async t => {
     const requests = fixture(t, () => {
       if (failure === "network") throw new Error("simulated lost response");
@@ -78,7 +78,7 @@ for (const failure of ["network", 500, 502, 503, 504, 429]) {
   });
 }
 
-for (const receipt of [null, {}, { decisionRecordId: "" }]) {
+for (const receipt of [null, {}, [], "receipt", { decisionRecordId: "" }, { decisionRecordId: "   " }, { decisionRecordId: 42 }]) {
   test(`HTTP success without a receipt stays unconfirmed: ${JSON.stringify(receipt)}`, async t => {
     const requests = fixture(t, () => ({ ok: true, status: 201, json: async () => receipt }));
     await assert.rejects(new VerifyClient(options).captureDecisionRecord({ workflowId: "fictional" }), { code: "CAPTURE_RESULT_UNCONFIRMED", outcomeUnknown: true, retryable: false });
@@ -91,6 +91,24 @@ test("a receipt without a saved timestamp does not invent a capture time or stat
   const result = await new VerifyClient(options).captureDecisionRecord({ workflowId: "fictional" });
   assert.equal(result.capturedAt, undefined);
   assert.equal(result.status, undefined);
+});
+
+for (const status of [200, 202, 204, 206]) {
+  test(`unexpected HTTP ${status} stays unconfirmed even with an ID`, async t => {
+    const requests = fixture(t, () => ({ ok: true, status, json: async () => ({ decisionRecordId: "dr_fixture" }) }));
+    await assert.rejects(new VerifyClient(options).captureDecisionRecord({ workflowId: "fictional" }), {
+      code: "CAPTURE_RESULT_UNCONFIRMED", statusCode: status, outcomeUnknown: true, retryable: false,
+    });
+    assert.equal(requests.length, 1);
+  });
+}
+
+test("preserves an explicit uncertain outcome from the server", async t => {
+  const requests = fixture(t, () => ({ ok: false, status: 400, json: async () => ({ outcomeUnknown: true }) }));
+  await assert.rejects(new VerifyClient(options).captureDecisionRecord({ workflowId: "fictional" }), {
+    outcomeUnknown: true, retryable: false,
+  });
+  assert.equal(requests.length, 1);
 });
 
 test("normalizes repeated trailing slashes and uses only the API-key header", async t => {
