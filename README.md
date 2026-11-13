@@ -29,7 +29,7 @@ This SDK is intended for developers building AI-assisted operational workflows t
 
 ## Requirements
 
-- Use Node.js 22 or 24 for this preview. The package declares Node.js 18+, but Node.js 18 compatibility has not yet been validated for this candidate.
+- Use Node.js 22 or 24 for this preview. Offline tests pass on 18.20.8, 22.20.0 and 24.10.0; the declared 18.0.0 minimum passes native HTTP and CommonJS import smoke checks. These checks ran on macOS arm64, not every supported platform or Node release. Node 18.0.0 reports its built-in fetch as experimental.
 - No additional runtime dependencies (the SDK uses only Node.js built-in APIs)
 
 ## Installation

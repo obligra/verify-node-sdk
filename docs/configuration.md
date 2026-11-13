@@ -1,6 +1,6 @@
 # Configuration
 
-This unreleased capture correction has been tested on Node.js 22 and 24. The package still declares Node.js 18+, but that runtime remains unvalidated for this candidate. Three options are required, directly or through environment variables:
+This unreleased capture correction passes offline tests on Node.js 18.20.8, 22.20.0 and 24.10.0. The declared 18.0.0 minimum passes native HTTP and CommonJS import smoke checks. These checks ran on macOS arm64; use Node.js 22 or 24 for the documented preview setup. Three options are required, directly or through environment variables:
 
 ```javascript
 import { VerifyClient } from "@obligra/verify-sdk";

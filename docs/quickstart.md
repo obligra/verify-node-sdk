@@ -4,7 +4,7 @@ This guide walks through capturing a retained decision record using the Obligra 
 
 ## Prerequisites
 
-* Use Node.js 22 or 24 for this preview. The package declares Node.js 18+, but this candidate has not been validated on Node.js 18.
+* Use Node.js 22 or 24 for this preview. Offline tests pass on 18.20.8, 22.20.0 and 24.10.0; the declared 18.0.0 minimum passes native HTTP and CommonJS import smoke checks on macOS arm64. This is not a test of every platform or Node release.
 * A key for the intended Test workspace/environment with `records:write`, injected into `VERIFY_API_KEY` through your approved backend secret mechanism.
 * A signed-in Verify Console session for retrieving and checking the resulting record.
 

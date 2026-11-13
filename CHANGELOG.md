@@ -10,7 +10,7 @@
 - Reject redirects so a capture body/key cannot be resent to another endpoint.
 - Require HTTP 201 plus a usable record ID; keep unexpected 2xx, 408/409 and explicit server uncertainty unconfirmed without retries.
 - Correct CommonJS dynamic import, environment loading, required SDK fields and reference limits; examples no longer override an injected key or print raw error messages.
-- Qualify the Node.js 18 compatibility claim; this candidate is locally tested on Node.js 22 and 24.
+- Document the tested runtime matrix: offline suite on Node.js 18.20.8, 22.20.0 and 24.10.0, plus native HTTP/CommonJS import smoke checks on the declared 18.0.0 minimum (macOS arm64).
 - Migration changes payload location and retry semantics; exact revision review and authenticated Test acceptance are required before release.
 
 
