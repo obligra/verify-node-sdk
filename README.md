@@ -40,7 +40,7 @@ For an authorized Test evaluation, install an exact reviewed GitHub commit (repl
 npm install github:obligra/verify-node-sdk#REVIEWED_COMMIT
 ```
 
-> **Note:** npm package publication (`npm install @obligra/verify-sdk`) is planned for the production release. During the preview period, install from GitHub.
+> **Release candidate:** version `0.2.0` is being prepared for npm publication after authenticated Test acceptance. It is not yet published; use the reviewed GitHub revision above while acceptance is pending.
 
 ## Getting Credentials
 
