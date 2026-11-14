@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — capture contract and write safety
+## 0.2.0 release candidate — capture contract and write safety
 
 - Keep AI input/output losslessly in `aiAssistedContext`, preserve explicit values, and copy caller-owned maps.
 - Validate searchable reference and whole-payload limits before HTTP.
