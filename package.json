@@ -1,6 +1,6 @@
 {
   "name": "@obligra/verify-sdk",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Node.js SDK for capturing retained decision records with Obligra Verify.",
   "type": "module",
   "main": "src/index.js",
@@ -17,6 +17,10 @@
     "LICENSE",
     "CHANGELOG.md"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "test": "node --test",
     "audit:check": "npm audit --omit=dev",
