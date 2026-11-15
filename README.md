@@ -34,16 +34,16 @@ This SDK is intended for developers building AI-assisted operational workflows t
 
 ## Installation
 
-Install the public preview package:
+Version `0.2.0` is prepared but not yet published. The November 15 publication attempt was rejected by npm's two-factor authentication requirement. Until publication completes, install the reviewed source revision:
+
+```bash
+npm install github:obligra/verify-node-sdk#5ebec910e0ab0bf782a10e0cb8147c06e4c841f9
+```
+
+After registry publication is confirmed, the versioned npm installation command will be:
 
 ```bash
 npm install @obligra/verify-sdk@0.2.0
-```
-
-For a reproducible source evaluation, you can instead install an exact reviewed GitHub commit (replace `REVIEWED_COMMIT` with the revision you intend to evaluate):
-
-```bash
-npm install github:obligra/verify-node-sdk#REVIEWED_COMMIT
 ```
 
 ## Getting Credentials
@@ -237,9 +237,9 @@ Examples:
 
 ## Validation Status
 
-This unreleased correction is covered by offline SDK tests and comparison with the current backend payload validator. It has not passed an authenticated capture/retrieval test in the deployed environment. No production or integration-readiness claim follows from mocked tests.
+The runtime passed one authenticated direct SDK capture and signed-in Console readback/integrity check in the existing Test environment on November 15, 2026. The exact displayed fields and limits of that check are listed under Status above. Offline tests provide additional error-path and runtime coverage; they do not establish production acceptance.
 
-Before releasing, review the migration below, pin the exact candidate commit, then validate one explicitly authorized synthetic server-side capture and its saved receipt. Keep the key out of browser code, logs and recordings. If the result is uncertain, reconcile existing records before another attempt.
+Review the migration below and pin the exact version or source revision you intend to evaluate. Keep keys out of browser code, logs and recordings. If a capture result is uncertain, reconcile existing records before another attempt.
 
 ## Migration from 0.1.2
 
