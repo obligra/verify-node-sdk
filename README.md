@@ -34,13 +34,7 @@ This SDK is intended for developers building AI-assisted operational workflows t
 
 ## Installation
 
-Version `0.2.0` is prepared but not yet published. The November 15 publication attempt was rejected by npm's two-factor authentication requirement. Until publication completes, install the reviewed source revision:
-
-```bash
-npm install github:obligra/verify-node-sdk#5ebec910e0ab0bf782a10e0cb8147c06e4c841f9
-```
-
-After registry publication is confirmed, the versioned npm installation command will be:
+Install version `0.2.0`:
 
 ```bash
 npm install @obligra/verify-sdk@0.2.0
