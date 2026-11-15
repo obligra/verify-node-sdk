@@ -16,7 +16,7 @@
 
 All notable changes to this project will be documented in this file.
 
-This project follows semantic versioning once public package releases begin.
+This project follows semantic versioning for public package releases.
 
 ## [0.1.2] - 2026-06-11
 
