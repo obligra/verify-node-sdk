@@ -1,6 +1,6 @@
 # Configuration
 
-This unreleased capture correction passes offline tests on Node.js 18.20.8, 22.20.0 and 24.10.0. The declared 18.0.0 minimum passes native HTTP and CommonJS import smoke checks. These checks ran on macOS arm64; use Node.js 22 or 24 for the documented preview setup. Three options are required, directly or through environment variables:
+Version `0.2.0` is published on npm. Offline tests pass on Node.js 18.20.8, 22.20.0 and 24.10.0. The declared 18.0.0 minimum passes native HTTP and CommonJS import smoke checks. These checks ran on macOS arm64; use Node.js 22 or 24 for the documented preview setup. Three options are required, directly or through environment variables:
 
 ```javascript
 import { VerifyClient } from "@obligra/verify-sdk";
@@ -12,7 +12,7 @@ const verify = new VerifyClient({
 });
 ```
 
-Use `sandbox` as the API's internal value for Test. The API key determines the actual workspace and environment; the `environment` option does not switch the key's scope. Do not infer Production access from a string setting.
+Use `sandbox` for the SDK's required legacy `environment` option in this Test example. The API key determines the actual workspace and environment; the `environment` option does not switch the key's scope. Do not infer Production access from a string setting.
 
 The API-key capture base URL for the existing deployment is `https://api.obligra.ai`; the SDK appends `/decision-records`. `/api/v1` is used by the separate Cognito-authenticated console routes. Custom approved deployments may supply their own base URL. Do not put keys in URLs.
 

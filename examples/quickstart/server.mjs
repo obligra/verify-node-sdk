@@ -5,7 +5,7 @@
  * regardless of package.json "type" setting.
  *
  * Setup:
- *   npm install github:obligra/verify-node-sdk#REVIEWED_COMMIT
+ *   npm install @obligra/verify-sdk@0.2.0
  *
  * Configure VERIFY_API_KEY through your approved server-side secret mechanism.
  * Use a Test key with records:write. Set VERIFY_BASE_URL=https://api.obligra.ai.

@@ -28,4 +28,4 @@ try {
 }
 ```
 
-`capturedAt` only aliases the server's `createdAt`; no timestamp is synthesized. A saved record does not establish correct AI output, complete capture, compliance, or application integration. This correction is offline-tested; authenticated live SDK acceptance remains pending.
+`capturedAt` only aliases the server's `createdAt`; no timestamp is synthesized. A saved record does not establish correct AI output, complete capture, compliance, or application integration. The published `0.2.0` runtime passed one direct synthetic Test capture and displayed Console readback/integrity check on November 15, 2026; offline tests provide additional error-path coverage. See [Status](../README.md#status) for the exact fields verified and remaining limitations.

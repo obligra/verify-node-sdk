@@ -14,7 +14,7 @@ This guide walks through capturing a retained decision record using the Obligra 
 mkdir verify-first-record
 cd verify-first-record
 npm init -y
-npm install github:obligra/verify-node-sdk#REVIEWED_COMMIT
+npm install @obligra/verify-sdk@0.2.0
 ```
 
 ## Configure the SDK
@@ -151,7 +151,7 @@ Sign into the Console, select the same workspace and Test environment as the key
 
 ## Current contract and acceptance limits
 
-This source includes an unreleased correction. For authorized Test evaluation, replace `REVIEWED_COMMIT` with the exact reviewed revision and confirm that it contains the correction. Authenticated live SDK capture/retrieval has not yet been validated for this revision; source review and merging alone do not complete release acceptance.
+Version `0.2.0` is published on npm. One direct synthetic Test SDK capture and displayed Console readback/integrity check passed on November 15, 2026. See [Status](../README.md#status) for the exact fields verified and remaining limitations; this does not establish production acceptance.
 
 Use the approved API-key capture origin (`https://api.obligra.ai` for the existing deployment). The SDK appends `/decision-records`; do not add the console API prefix `/api/v1`.
 

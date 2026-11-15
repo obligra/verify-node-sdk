@@ -187,7 +187,7 @@ The Verify SDK exposes only the customer-facing capture interface. It does not e
 
 ## Current contract and acceptance limits
 
-This source includes an unreleased correction. For authorized Test evaluation, replace `REVIEWED_COMMIT` with the exact reviewed revision and confirm that it contains the correction. Authenticated live SDK capture/retrieval has not yet been validated for this revision; source review and merging alone do not complete release acceptance.
+Version `0.2.0` is published on npm. One direct synthetic Test SDK capture and displayed Console readback/integrity check passed on November 15, 2026. See [Status](../README.md#status) for the exact fields verified and remaining limitations; this does not establish production acceptance.
 
 Use the approved API-key capture origin (`https://api.obligra.ai` for the existing deployment). The SDK appends `/decision-records`; do not add the console API prefix `/api/v1`.
 
