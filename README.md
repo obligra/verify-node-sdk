@@ -22,9 +22,9 @@ This SDK is intended for developers building AI-assisted operational workflows t
 
 **Public Preview**
 
-- This source includes a capture-contract and write-safety correction; live acceptance remains pending.
-- Offline mocked-HTTP tests pass; authenticated end-to-end acceptance of this revision is still pending.
-- Earlier validation reports describe earlier revisions and are not a current release acceptance result.
+- Includes the capture-contract and write-safety corrections described in the changelog.
+- On November 15, 2026, one direct synthetic capture on Node.js 22.20.0 returned an actual record receipt. Console readback matched the full 791-character prompt, Unicode output, model and retrieval references; the saved integrity result was Passed. The dedicated Test key was revoked.
+- That live check covered the displayed fields above. Additional explicit AI-context values are covered by offline tests; Console did not display them for live comparison. An integrity result does not establish AI correctness, policy compliance or human review.
 - Use only fictional or synthetic input in a Test environment during validation.
 
 ## Requirements
@@ -34,13 +34,17 @@ This SDK is intended for developers building AI-assisted operational workflows t
 
 ## Installation
 
-For an authorized Test evaluation, install an exact reviewed GitHub commit (replace `REVIEWED_COMMIT`; confirm which revision you are evaluating):
+Install the public preview package:
+
+```bash
+npm install @obligra/verify-sdk@0.2.0
+```
+
+For a reproducible source evaluation, you can instead install an exact reviewed GitHub commit (replace `REVIEWED_COMMIT` with the revision you intend to evaluate):
 
 ```bash
 npm install github:obligra/verify-node-sdk#REVIEWED_COMMIT
 ```
-
-> **Release candidate:** version `0.2.0` is being prepared for npm publication after authenticated Test acceptance. It is not yet published; use the reviewed GitHub revision above while acceptance is pending.
 
 ## Getting Credentials
 
