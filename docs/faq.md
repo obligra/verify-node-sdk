@@ -97,17 +97,9 @@ Typical SDK responsibilities include:
 
 ---
 
-## What languages will be supported?
+## Which SDKs are available?
 
-Planned SDK support includes:
-
-* Node.js
-* Python
-* Java
-* .NET
-* Go
-
-Node.js is the initial reference SDK.
+The public preview SDKs are available as [Node.js `@obligra/verify-sdk@0.2.0`](https://www.npmjs.com/package/@obligra/verify-sdk) and [Python `obligra-verify==0.1.0`](https://pypi.org/project/obligra-verify/0.1.0/). Their repositories document the supported capture contract and validation limits. Java, .NET and Go were listed as future plans; this release does not include those SDKs.
 
 ---
 
@@ -192,19 +184,15 @@ Organizations may choose to deploy integration components inside their own AWS e
 
 ## What is the Verify Proxy?
 
-The Verify Proxy is a planned deployment pattern that allows organizations to place a customer-controlled integration layer between their applications and Verify.
+The optional Verify Proxy is a customer-controlled relay between an application and Verify. Its [CloudFormation](https://github.com/obligra/verify-cloudformation) and [Terraform](https://github.com/obligra/verify-terraform) source repositories contain remediation candidates and deployment guidance. These templates are not additional SDK languages, and the direct SDK path does not require a proxy.
 
-This approach may be useful for organizations with strict governance, security, privacy, or operational requirements.
-
-Deployment guidance will be published separately.
+The proxy candidates are not yet accepted for live deployment. Their current policy mode does not support the SDK's `aiAssistedContext.output` field; follow the repositories' review and acceptance gates before deployment.
 
 ---
 
-## Will CloudFormation templates be provided?
+## Are CloudFormation templates available?
 
-Yes.
-
-Planned deployment assets include CloudFormation templates that simplify deployment of Verify integration components inside customer AWS environments.
+[CloudFormation source templates](https://github.com/obligra/verify-cloudformation) are public as remediation candidates. Source availability does not establish a completed deployment or live acceptance; follow that repository's status and deployment restrictions.
 
 ---
 
@@ -324,4 +312,4 @@ Do not include API keys, secrets, customer records, prompts, model outputs, or r
 * Capture Decision Record
 * API Reference
 * Errors and Retries
-* CloudFormation Deployment Guide (planned)
+* [CloudFormation source and deployment status](https://github.com/obligra/verify-cloudformation)
