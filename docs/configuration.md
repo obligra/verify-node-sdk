@@ -26,4 +26,4 @@ The SDK does not load `.env`. Inject/export variables before starting Node, or u
 
 The key needs `records:write`. Record retrieval and integrity checks require Console Cognito authentication; the capture key and `environment` label do not provide it.
 
-Keep keys in an approved server-side secret mechanism, out of source control, browser code/storage, screenshots and recordings. This documentation does not authorize creating, saving or moving a key. Authenticated acceptance of this candidate is pending.
+Keep keys in an approved server-side secret mechanism, out of source control, browser code/storage, screenshots and recordings. This documentation does not authorize creating, saving or moving a key. The published `0.2.0` runtime passed one direct synthetic Test capture and displayed Console readback/integrity check on November 15, 2026. See [Status](../README.md#status) for the fields verified and remaining limitations.
